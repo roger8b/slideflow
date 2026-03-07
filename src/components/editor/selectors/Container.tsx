@@ -29,6 +29,9 @@ export const Container = ({
         enabled: state.options.enabled
     }));
 
+    const isFixed = flex === 0 || flex === '0';
+    const computedHeight = isNaN(Number(height)) ? height : `${height}px`;
+
     return (
         <div
             ref={(ref) => { if (ref) connect(drag(ref)); }}
@@ -40,16 +43,19 @@ export const Container = ({
                 background,
                 padding: `${padding}px`,
                 gap: `${gap}px`,
-                flex: flex as any,
-                height: isNaN(Number(height)) ? height : `${height}px`,
+                flexGrow: isFixed ? 0 : 1,
+                flexShrink: isFixed ? 0 : 1,
+                flexBasis: isFixed && computedHeight !== 'auto' ? computedHeight : 'auto',
+                height: computedHeight,
                 minHeight: '20px',
                 width: '100%',
                 boxSizing: 'border-box',
                 border: (enabled || !children) ? '1px dashed #BBBFCA' : 'none',
                 borderRadius: '8px',
                 cursor: 'default',
+                overflow: 'hidden'
             }}
-            className="transition-all hover:bg-[#F4F4F2]"
+            className="transition-all"
         >
             {children}
         </div>

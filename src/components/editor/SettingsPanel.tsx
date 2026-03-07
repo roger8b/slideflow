@@ -116,25 +116,55 @@ export const SettingsPanel = () => {
                             />
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Height</label>
-                            <input
-                                type="text"
-                                value={selected.props.height}
-                                onChange={(e) => actions.setProp(selected.id, (props) => (props.height = e.target.value))}
-                                placeholder="100%, auto or 400"
+                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Height Mode</label>
+                            <select
+                                value={
+                                    selected.props.height === 'auto' ? 'auto' :
+                                        selected.props.height === '100%' ? 'fill' : 'fixed'
+                                }
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    actions.setProp(selected.id, (props) => {
+                                        if (val === 'auto') props.height = 'auto';
+                                        else if (val === 'fill') props.height = '100%';
+                                        else props.height = '300';
+                                    });
+                                }}
                                 className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                            />
+                            >
+                                <option value="auto">Auto (Content)</option>
+                                <option value="fill">Fill (100%)</option>
+                                <option value="fixed">Fixed (Pixels)</option>
+                            </select>
                         </div>
+
+                        {selected.props.height !== 'auto' && selected.props.height !== '100%' && (
+                            <div className="flex flex-col gap-1">
+                                <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Fixed Height (px)</label>
+                                <input
+                                    type="number"
+                                    value={parseInt(selected.props.height) || 0}
+                                    onChange={(e) => actions.setProp(selected.id, (props) => (props.height = e.target.value))}
+                                    className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
+                                />
+                            </div>
+                        )}
+
                         <div className="flex flex-col gap-1">
-                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Flex Grow</label>
+                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Flex Distribution</label>
                             <select
                                 value={selected.props.flex}
                                 onChange={(e) => actions.setProp(selected.id, (props) => (props.flex = e.target.value))}
                                 className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
                             >
-                                <option value="0">Fixed (0)</option>
-                                <option value="1">Fill Space (1)</option>
+                                <option value="0">Fixed Size</option>
+                                <option value="1">Fill Available Space</option>
                             </select>
+                            <p className="text-[9px] text-[#BBBFCA] italic">
+                                {selected.props.flex === '0' || selected.props.flex === 0
+                                    ? "This container won't grow to fill space."
+                                    : "This container will expand to fill empty space."}
+                            </p>
                         </div>
                     </div>
                 )}

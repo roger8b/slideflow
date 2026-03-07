@@ -24,14 +24,12 @@ import {
   ChevronLeft,
   Edit3,
   Trash2,
-  Settings,
   Monitor,
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-import { TextNode, ImageNode, VideoNode, CustomNode } from './components/CustomNodes';
-import { NodeEditor } from './components/NodeEditor';
+import { CustomNode } from './components/CustomNodes';
 import { EditorContainer } from './components/editor/EditorContainer';
 import { MetadataModal } from './components/MetadataModal';
 import { AppMode, SlideNode, SlideNodeData, PresentationFile, PresentationMetadata } from './types';
@@ -42,11 +40,10 @@ import { COLOR_PALETTE, cn } from './constants';
 const initialNodes: SlideNode[] = [
   {
     id: 'start',
-    type: 'text',
+    type: 'custom',
     position: { x: 250, y: 5 },
     data: {
-      type: 'text',
-      content: '# Welcome to SlideFlow\n\nThis is your first slide. Click the **Edit** button to change content or **Presentation** to start.',
+      type: 'custom',
       label: 'Start'
     },
   },
@@ -80,9 +77,6 @@ const SlideFlowContent = () => {
   }, [editingNodeId, nodes]);
 
   const nodeTypes = useMemo(() => ({
-    text: TextNode,
-    image: ImageNode,
-    video: VideoNode,
     custom: CustomNode,
   }), []);
 
@@ -294,19 +288,6 @@ const SlideFlowContent = () => {
               <input type="file" accept=".json" onChange={loadPresentation} className="hidden" />
             </label>
             <div className="w-px h-6 bg-[#BBBFCA] mx-2" />
-            <div className="flex items-center gap-2 px-3 py-1 bg-[#E8E8E8] rounded-lg border border-[#BBBFCA]">
-              <span className="text-[10px] font-bold uppercase text-[#495464]">Resolution</span>
-              <input
-                type="range"
-                min="12"
-                max="96"
-                value={metadata.baseFontSize}
-                onChange={(e) => setMetadata(prev => ({ ...prev, baseFontSize: parseInt(e.target.value) }))}
-                className="w-24 h-1 bg-[#BBBFCA] rounded-lg appearance-none cursor-pointer accent-[#495464]"
-              />
-              <span className="text-[10px] font-mono w-6 text-center">{metadata.baseFontSize}px</span>
-            </div>
-            <div className="w-px h-6 bg-[#BBBFCA] mx-2" />
             <button
               onClick={startPresentation}
               className="flex items-center gap-2 px-6 py-2 bg-[#495464] text-white hover:bg-[#3a4350] rounded-lg transition-all font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
@@ -344,7 +325,7 @@ const SlideFlowContent = () => {
             <>
               <Controls className="bg-white border-[#BBBFCA] shadow-md" />
               <MiniMap
-                nodeColor={(n) => n.type === 'text' ? '#495464' : '#BBBFCA'}
+                nodeColor={() => '#BBBFCA'}
                 className="bg-white border-[#BBBFCA] shadow-md"
               />
             </>
@@ -464,16 +445,7 @@ const SlideFlowContent = () => {
       </main>
 
       {/* Modals */}
-      {editingNode && editingNode.data.type !== 'custom' && (
-        <NodeEditor
-          isOpen={isEditorOpen}
-          onClose={() => { setIsEditorOpen(false); setEditingNodeId(null); }}
-          onSave={onSaveNode}
-          initialData={editingNode.data}
-        />
-      )}
-
-      {editingNode && editingNode.data.type === 'custom' && (
+      {editingNode && (
         <EditorContainer
           isOpen={isEditorOpen}
           onClose={() => { setIsEditorOpen(false); setEditingNodeId(null); }}

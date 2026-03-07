@@ -33,7 +33,7 @@ export const MetadataModal: React.FC<MetadataModalProps> = ({
             <X size={24} />
           </button>
         </div>
-        
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-[#495464] mb-1">Title</label>
@@ -54,20 +54,6 @@ export const MetadataModal: React.FC<MetadataModalProps> = ({
               className="w-full px-4 py-2 rounded-lg border border-[#BBBFCA] bg-white focus:outline-none focus:ring-2 focus:ring-[#495464] text-[#495464]"
               placeholder="Your Name"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-[#495464] mb-1">Base Resolution (Font Size)</label>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="12"
-                max="96"
-                value={baseFontSize}
-                onChange={(e) => setBaseFontSize(parseInt(e.target.value))}
-                className="flex-1 h-2 bg-[#BBBFCA] rounded-lg appearance-none cursor-pointer accent-[#495464]"
-              />
-              <span className="text-sm font-mono w-12 text-right text-[#495464]">{baseFontSize}px</span>
-            </div>
           </div>
         </div>
 

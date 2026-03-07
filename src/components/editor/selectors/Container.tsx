@@ -15,8 +15,8 @@ export interface ContainerProps {
 
 export const Container = ({
     flexDirection = 'column',
-    alignItems = 'flex-start',
-    justifyContent = 'flex-start',
+    alignItems = 'center',
+    justifyContent = 'center',
     background = 'transparent',
     padding = 20,
     gap = 10,
@@ -65,8 +65,8 @@ export const Container = ({
 Container.craft = {
     props: {
         flexDirection: 'column',
-        alignItems: 'flex-start',
-        justifyContent: 'flex-start',
+        alignItems: 'center',
+        justifyContent: 'center',
         background: 'transparent',
         padding: 20,
         gap: 10,

@@ -27,7 +27,8 @@ export const Title = ({ text = 'New Title', fontSize = 48, color = '#495464', te
             className={cn(
                 "group relative border border-transparent transition-all",
                 selected && "border-blue-500 bg-blue-50/10",
-                enabled && "hover:border-blue-300 hover:bg-[#F4F4F2] cursor-move"
+                enabled && "hover:border-blue-300 hover:bg-[#F4F4F2] cursor-move",
+                "w-full"
             )}
         >
             {enabled && selected && (
@@ -47,6 +48,7 @@ export const Title = ({ text = 'New Title', fontSize = 48, color = '#495464', te
                     fontWeight,
                     margin: 0,
                     padding: '4px',
+                    width: '100%',
                 }}
             />
         </div>

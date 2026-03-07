@@ -72,7 +72,7 @@ export const SettingsPanel = () => {
                             </select>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Align Items</label>
+                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Horizontal Alignment</label>
                             <select
                                 value={selected.props.alignItems}
                                 onChange={(e) => actions.setProp(selected.id, (props) => (props.alignItems = e.target.value))}
@@ -85,7 +85,7 @@ export const SettingsPanel = () => {
                             </select>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Justify Content</label>
+                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Vertical Alignment</label>
                             <select
                                 value={selected.props.justifyContent}
                                 onChange={(e) => actions.setProp(selected.id, (props) => (props.justifyContent = e.target.value))}

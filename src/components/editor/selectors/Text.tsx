@@ -26,7 +26,8 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#4954
             className={cn(
                 "group relative border border-transparent transition-all",
                 selected && "border-blue-500 bg-blue-50/10",
-                enabled && "hover:border-blue-300 hover:bg-[#F4F4F2] cursor-move"
+                enabled && "hover:border-blue-300 hover:bg-[#F4F4F2] cursor-move",
+                "w-full"
             )}
         >
             {enabled && selected && (
@@ -46,6 +47,7 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#4954
                     lineHeight: '1.5',
                     margin: 0,
                     padding: '4px',
+                    width: '100%',
                 }}
             />
         </div>

@@ -19,6 +19,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<SlideNodeData>) =>
       <div className="flex-1 overflow-hidden relative">
         {data.layout ? (
           <Editor
+            key={data.layout}
             enabled={false}
             resolver={{
               Container,

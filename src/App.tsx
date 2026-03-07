@@ -15,14 +15,14 @@ import ReactFlow, {
   ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { 
-  Play, 
-  Plus, 
-  Save, 
-  Upload, 
-  ChevronRight, 
-  ChevronLeft, 
-  Edit3, 
+import {
+  Play,
+  Plus,
+  Save,
+  Upload,
+  ChevronRight,
+  ChevronLeft,
+  Edit3,
   Trash2,
   Settings,
   Monitor,
@@ -30,25 +30,22 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-import { TextNode, ImageNode, VideoNode } from './components/CustomNodes';
+import { TextNode, ImageNode, VideoNode, CustomNode } from './components/CustomNodes';
 import { NodeEditor } from './components/NodeEditor';
+import { EditorContainer } from './components/editor/EditorContainer';
 import { MetadataModal } from './components/MetadataModal';
 import { AppMode, SlideNode, SlideNodeData, PresentationFile, PresentationMetadata } from './types';
 import { COLOR_PALETTE, cn } from './constants';
 
-const nodeTypes = {
-  text: TextNode,
-  image: ImageNode,
-  video: VideoNode,
-};
+// Node types moved inside component and memoized to avoid React Flow warning
 
 const initialNodes: SlideNode[] = [
   {
     id: 'start',
     type: 'text',
     position: { x: 250, y: 5 },
-    data: { 
-      type: 'text', 
+    data: {
+      type: 'text',
       content: '# Welcome to SlideFlow\n\nThis is your first slide. Click the **Edit** button to change content or **Presentation** to start.',
       label: 'Start'
     },
@@ -78,16 +75,27 @@ const SlideFlowContent = () => {
 
   const { fitView, setViewport, toObject } = useReactFlow();
 
+  const editingNode = useMemo(() => {
+    return editingNodeId ? nodes.find((n) => n.id === editingNodeId) : null;
+  }, [editingNodeId, nodes]);
+
+  const nodeTypes = useMemo(() => ({
+    text: TextNode,
+    image: ImageNode,
+    video: VideoNode,
+    custom: CustomNode,
+  }), []);
+
   // --- Navigation Logic ---
 
   const startPresentation = useCallback(() => {
     if (nodes.length === 0) return;
-    
+
     setMode('player');
     const startNode = nodes[0].id;
     setCurrentNodeId(startNode);
     setNavigationHistory([startNode]);
-    
+
     // Focus first node
     setTimeout(() => {
       fitView({ nodes: [{ id: startNode }], duration: 800, padding: 0.1 });
@@ -109,9 +117,9 @@ const SlideFlowContent = () => {
   const updateNodesFocus = useCallback((focusedId: string) => {
     setNodes((nds) => nds.map((node) => ({
       ...node,
-      data: { 
-        ...node.data, 
-        isFocused: node.id === focusedId 
+      data: {
+        ...node.data,
+        isFocused: node.id === focusedId
       }
     })));
   }, [setNodes]);
@@ -125,11 +133,11 @@ const SlideFlowContent = () => {
 
   const navigateBack = useCallback(() => {
     if (navigationHistory.length <= 1) return;
-    
+
     const newHistory = [...navigationHistory];
     newHistory.pop(); // Remove current
     const prevNodeId = newHistory[newHistory.length - 1];
-    
+
     setCurrentNodeId(prevNodeId);
     setNavigationHistory(newHistory);
     fitView({ nodes: [{ id: prevNodeId }], duration: 800, padding: 0.1 });
@@ -155,9 +163,9 @@ const SlideFlowContent = () => {
     const id = `node_${Date.now()}`;
     const newNode: SlideNode = {
       id,
-      type: 'text',
+      type: 'custom',
       position: { x: Math.random() * 400, y: Math.random() * 400 },
-      data: { type: 'text', content: '# New Slide', label: 'New Slide' },
+      data: { type: 'custom', label: 'Custom Slide' },
     };
     setNodes((nds) => nds.concat(newNode));
     setEditingNodeId(id);
@@ -185,7 +193,7 @@ const SlideFlowContent = () => {
 
   const savePresentation = useCallback((title: string, author: string, baseFontSize: number) => {
     if (!rfInstance) return;
-    
+
     const flow = rfInstance.toObject();
     const presentation: PresentationFile = {
       metadata: {
@@ -218,7 +226,7 @@ const SlideFlowContent = () => {
     reader.onload = (event) => {
       try {
         const presentation: PresentationFile = JSON.parse(event.target?.result as string);
-        
+
         // Basic validation
         if (!presentation.nodes || !presentation.edges) {
           throw new Error('Invalid SlideFlow file format');
@@ -227,7 +235,7 @@ const SlideFlowContent = () => {
         setNodes(presentation.nodes);
         setEdges(presentation.edges);
         setMetadata(presentation.metadata);
-        
+
         if (presentation.viewport) {
           setViewport(presentation.viewport);
         }
@@ -239,7 +247,7 @@ const SlideFlowContent = () => {
   }, [setNodes, setEdges, setViewport]);
 
   return (
-    <div 
+    <div
       className="w-full h-screen bg-[#F4F4F2] flex flex-col font-sans text-[#495464]"
       style={{ '--slide-font-size': `${metadata.baseFontSize}px` } as React.CSSProperties}
       onMouseMove={(e) => {
@@ -267,14 +275,14 @@ const SlideFlowContent = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={addNode}
               className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] hover:bg-[#BBBFCA] rounded-lg transition-colors font-semibold text-sm"
             >
               <Plus size={18} /> Add Slide
             </button>
             <div className="w-px h-6 bg-[#BBBFCA] mx-2" />
-            <button 
+            <button
               onClick={() => setIsMetadataOpen(true)}
               className="p-2 hover:bg-[#E8E8E8] rounded-lg transition-colors text-[#495464]"
               title="Save Presentation"
@@ -288,18 +296,18 @@ const SlideFlowContent = () => {
             <div className="w-px h-6 bg-[#BBBFCA] mx-2" />
             <div className="flex items-center gap-2 px-3 py-1 bg-[#E8E8E8] rounded-lg border border-[#BBBFCA]">
               <span className="text-[10px] font-bold uppercase text-[#495464]">Resolution</span>
-              <input 
-                type="range" 
-                min="12" 
-                max="96" 
-                value={metadata.baseFontSize} 
+              <input
+                type="range"
+                min="12"
+                max="96"
+                value={metadata.baseFontSize}
                 onChange={(e) => setMetadata(prev => ({ ...prev, baseFontSize: parseInt(e.target.value) }))}
                 className="w-24 h-1 bg-[#BBBFCA] rounded-lg appearance-none cursor-pointer accent-[#495464]"
               />
               <span className="text-[10px] font-mono w-6 text-center">{metadata.baseFontSize}px</span>
             </div>
             <div className="w-px h-6 bg-[#BBBFCA] mx-2" />
-            <button 
+            <button
               onClick={startPresentation}
               className="flex items-center gap-2 px-6 py-2 bg-[#495464] text-white hover:bg-[#3a4350] rounded-lg transition-all font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
@@ -335,8 +343,8 @@ const SlideFlowContent = () => {
           {mode === 'canvas' && (
             <>
               <Controls className="bg-white border-[#BBBFCA] shadow-md" />
-              <MiniMap 
-                nodeColor={(n) => n.type === 'text' ? '#495464' : '#BBBFCA'} 
+              <MiniMap
+                nodeColor={(n) => n.type === 'text' ? '#495464' : '#BBBFCA'}
                 className="bg-white border-[#BBBFCA] shadow-md"
               />
             </>
@@ -346,13 +354,13 @@ const SlideFlowContent = () => {
           <AnimatePresence>
             {mode === 'player' && isPlayerControlsVisible && (
               <Panel position="bottom-center" className="mb-8">
-                <motion.div 
+                <motion.div
                   initial={{ y: 100, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: 100, opacity: 0 }}
                   className="bg-white/90 backdrop-blur-md px-8 py-4 rounded-2xl shadow-2xl border border-[#BBBFCA] flex items-center gap-8"
                 >
-                  <button 
+                  <button
                     onClick={navigateBack}
                     disabled={navigationHistory.length <= 1}
                     className="p-3 rounded-xl hover:bg-[#E8E8E8] disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-[#495464]"
@@ -367,7 +375,7 @@ const SlideFlowContent = () => {
                     </span>
                   </div>
 
-                  <button 
+                  <button
                     onClick={() => nextNodeId && navigateTo(nextNodeId)}
                     disabled={!nextNodeId || isBifurcation}
                     className="p-3 rounded-xl hover:bg-[#E8E8E8] disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-[#495464]"
@@ -377,7 +385,7 @@ const SlideFlowContent = () => {
 
                   <div className="w-px h-10 bg-[#BBBFCA] mx-2" />
 
-                  <button 
+                  <button
                     onClick={exitPresentation}
                     className="flex items-center gap-2 px-4 py-2 bg-[#BBBFCA] text-[#495464] hover:bg-[#a0a4b0] rounded-lg transition-all font-bold text-sm"
                   >
@@ -392,7 +400,7 @@ const SlideFlowContent = () => {
           <AnimatePresence>
             {mode === 'player' && isBifurcation && (
               <Panel position="top-center" className="mt-20">
-                <motion.div 
+                <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   className="bg-[#495464] text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-4"
@@ -418,7 +426,7 @@ const SlideFlowContent = () => {
           {mode === 'canvas' && (
             <Panel position="top-right" className="mr-4 mt-4">
               <div className="bg-white p-2 rounded-xl shadow-lg border border-[#BBBFCA] flex flex-col gap-2">
-                <button 
+                <button
                   onClick={() => {
                     const selected = nodes.find(n => n.selected);
                     if (selected) {
@@ -434,7 +442,7 @@ const SlideFlowContent = () => {
                 >
                   <Edit3 size={20} />
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     const selected = nodes.find(n => n.selected);
                     if (selected) {
@@ -456,13 +464,27 @@ const SlideFlowContent = () => {
       </main>
 
       {/* Modals */}
-      <NodeEditor 
-        isOpen={isEditorOpen} 
-        onClose={() => { setIsEditorOpen(false); setEditingNodeId(null); }}
-        onSave={onSaveNode}
-        initialData={editingNodeId ? nodes.find(n => n.id === editingNodeId)?.data : undefined}
-      />
-      
+      {editingNode && editingNode.data.type !== 'custom' && (
+        <NodeEditor
+          isOpen={isEditorOpen}
+          onClose={() => { setIsEditorOpen(false); setEditingNodeId(null); }}
+          onSave={onSaveNode}
+          initialData={editingNode.data}
+        />
+      )}
+
+      {editingNode && editingNode.data.type === 'custom' && (
+        <EditorContainer
+          isOpen={isEditorOpen}
+          onClose={() => { setIsEditorOpen(false); setEditingNodeId(null); }}
+          onSave={(layout) => {
+            onSaveNode({ type: 'custom', layout });
+          }}
+          initialLayout={editingNode.data.layout}
+          nodeLabel={editingNode.data.label}
+        />
+      )}
+
       <MetadataModal
         isOpen={isMetadataOpen}
         onClose={() => setIsMetadataOpen(false)}

@@ -11,6 +11,8 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@craftjs/core": "^0.2.12",
+    "@craftjs/utils": "^0.2.5",
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
@@ -21,6 +23,7 @@
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.0",
+    "react-contenteditable": "^3.3.7",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
     "reactflow": "^11.11.4",

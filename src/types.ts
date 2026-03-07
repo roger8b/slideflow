@@ -1,6 +1,6 @@
 import { Node, Edge, Viewport } from 'reactflow';
 
-export type NodeType = 'text' | 'image' | 'video';
+export type NodeType = 'text' | 'image' | 'video' | 'custom';
 
 export interface SlideNodeData {
   label?: string;
@@ -9,6 +9,7 @@ export interface SlideNodeData {
   mediaBase64?: string; // For image/video nodes
   mediaName?: string;
   isFocused?: boolean;
+  layout?: string; // Craft.js serialized state (JSON string)
 }
 
 export type SlideNode = Node<SlideNodeData>;

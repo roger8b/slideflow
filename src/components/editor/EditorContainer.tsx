@@ -64,7 +64,7 @@ export const EditorContainer = ({
                     <div className="flex-1 overflow-y-auto p-12 bg-[#E8E8E8] flex justify-center items-start">
                         <div className="w-full max-w-4xl bg-white shadow-2xl rounded-2xl min-h-[600px] border border-[#BBBFCA] relative flex flex-col">
                             <Frame json={initialLayout}>
-                                <Element is={Container} padding={40} canvas />
+                                <Element is={Container} padding={40} canvas flex={1} height="100%" />
                             </Frame>
                         </div>
                     </div>

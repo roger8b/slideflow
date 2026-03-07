@@ -115,6 +115,27 @@ export const SettingsPanel = () => {
                                 className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
                             />
                         </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Height</label>
+                            <input
+                                type="text"
+                                value={selected.props.height}
+                                onChange={(e) => actions.setProp(selected.id, (props) => (props.height = e.target.value))}
+                                placeholder="100%, auto or 400"
+                                className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Flex Grow</label>
+                            <select
+                                value={selected.props.flex}
+                                onChange={(e) => actions.setProp(selected.id, (props) => (props.flex = e.target.value))}
+                                className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
+                            >
+                                <option value="0">Fixed (0)</option>
+                                <option value="1">Fill Space (1)</option>
+                            </select>
+                        </div>
                     </div>
                 )}
 

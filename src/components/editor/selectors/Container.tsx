@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNode } from '@craftjs/core';
+import { useNode, useEditor } from '@craftjs/core';
 
 export interface ContainerProps {
     flexDirection?: 'row' | 'column';
@@ -8,6 +8,8 @@ export interface ContainerProps {
     background?: string;
     padding?: number;
     gap?: number;
+    flex?: string | number;
+    height?: string;
     children?: React.ReactNode;
 }
 
@@ -18,9 +20,14 @@ export const Container = ({
     background = 'transparent',
     padding = 20,
     gap = 10,
+    flex = 1,
+    height = '100%',
     children,
 }: ContainerProps) => {
     const { connectors: { connect, drag } } = useNode();
+    const { enabled } = useEditor((state) => ({
+        enabled: state.options.enabled
+    }));
 
     return (
         <div
@@ -33,10 +40,12 @@ export const Container = ({
                 background,
                 padding: `${padding}px`,
                 gap: `${gap}px`,
-                minHeight: '80px',
+                flex: flex as any,
+                height: isNaN(Number(height)) ? height : `${height}px`,
+                minHeight: '20px',
                 width: '100%',
                 boxSizing: 'border-box',
-                border: '1px dashed #BBBFCA',
+                border: (enabled || !children) ? '1px dashed #BBBFCA' : 'none',
                 borderRadius: '8px',
                 cursor: 'default',
             }}
@@ -55,11 +64,14 @@ Container.craft = {
         background: 'transparent',
         padding: 20,
         gap: 10,
+        flex: 1,
+        height: '100%',
     },
     rules: {
         canDrag: () => true,
         canMoveIn: () => true,
         canMoveOut: () => true,
     },
+    isCanvas: true,
     displayName: 'Container'
 };

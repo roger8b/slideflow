@@ -46,7 +46,7 @@ export const SettingsPanel = () => {
                         <div className="flex flex-col gap-1">
                             <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Alignment</label>
                             <select
-                                value={selected.props.textAlign}
+                                value={selected.props.textAlign || 'left'}
                                 onChange={(e) => actions.setProp(selected.id, (props) => (props.textAlign = e.target.value))}
                                 className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
                             >
@@ -55,6 +55,16 @@ export const SettingsPanel = () => {
                                 <option value="right">Right</option>
                             </select>
                         </div>
+                        {selected.name === 'Text' && (
+                            <div className="flex flex-col gap-1">
+                                <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Markdown Content</label>
+                                <textarea
+                                    value={selected.props.text}
+                                    onChange={(e) => actions.setProp(selected.id, (props) => (props.text = e.target.value))}
+                                    className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none h-40 resize-none font-mono"
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
 

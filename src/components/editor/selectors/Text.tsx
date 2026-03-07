@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNode, useEditor } from '@craftjs/core';
-import ContentEditable from 'react-contenteditable';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { GripVertical } from 'lucide-react';
 import { cn } from '../../../constants';
 
@@ -20,9 +22,17 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#4954
         enabled: state.options.enabled
     }));
 
+    const [isEditing, setIsEditing] = useState(false);
+
+    const handleDoubleClick = (e: React.MouseEvent) => {
+        if (!enabled) return;
+        e.stopPropagation();
+        setIsEditing(true);
+    };
+
     return (
         <div
-            ref={(ref) => { if (ref) connect(drag(ref)); }}
+            ref={(ref: any) => { if (ref) connect(drag(ref)); }}
             className={cn(
                 "group relative border border-transparent transition-all",
                 selected && "border-blue-500 bg-blue-50/10",
@@ -35,21 +45,48 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#4954
                     <GripVertical size={14} />
                 </div>
             )}
-            <ContentEditable
-                html={text}
-                disabled={!enabled}
-                onChange={(e) => setProp((props: any) => (props.text = e.target.value))}
-                tagName="p"
-                style={{
-                    fontSize: `${fontSize}px`,
-                    color,
-                    textAlign,
-                    lineHeight: '1.5',
-                    margin: 0,
-                    padding: '4px',
-                    width: '100%',
-                }}
-            />
+            <div
+                className="w-full h-full"
+                onDoubleClick={handleDoubleClick}
+            >
+                {enabled && isEditing ? (
+                    <textarea
+                        autoFocus
+                        value={text}
+                        onBlur={() => setIsEditing(false)}
+                        onChange={(e) => setProp((props: any) => (props.text = e.target.value))}
+                        className="w-full min-h-[100px] bg-transparent outline-none resize-none px-1 py-1 border-none focus:ring-0"
+                        style={{
+                            fontSize: `${fontSize}px`,
+                            color,
+                            textAlign,
+                            lineHeight: '1.5',
+                            fontFamily: 'monospace'
+                        }}
+                    />
+                ) : (
+                    <div
+                        className="markdown-content prose max-w-none"
+                        style={{
+                            fontSize: `${fontSize}px`,
+                            color,
+                            textAlign,
+                            lineHeight: '1.5',
+                            padding: '4px',
+                        }}
+                    >
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm, remarkBreaks]}
+                            components={{
+                                a: ({ node, ...props }) => <a {...props} style={{ color: 'blue', textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" />,
+                                strong: ({ node, ...props }) => <strong {...props} style={{ fontWeight: 'bold' }} />,
+                            }}
+                        >
+                            {text || ''}
+                        </ReactMarkdown>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

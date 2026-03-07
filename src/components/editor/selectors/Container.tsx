@@ -21,6 +21,9 @@ export interface ContainerProps {
     backgroundSize?: 'cover' | 'contain' | 'auto';
     backgroundPosition?: string;
     backgroundOpacity?: number; // Overlay
+    backdropBlur?: number;
+    backdropBlurColor?: string;
+    width?: string;
 }
 
 export const Container = ({
@@ -32,6 +35,7 @@ export const Container = ({
     gap = 10,
     flex = 1,
     height = 'auto',
+    width = '100%',
     children,
 
     // Design Defaults
@@ -43,6 +47,8 @@ export const Container = ({
     backgroundSize = 'cover',
     backgroundPosition = 'center',
     backgroundOpacity = 0,
+    backdropBlur = 0,
+    backdropBlurColor = 'rgba(255, 255, 255, 0.1)',
 }: ContainerProps) => {
     const { connectors: { connect, drag } } = useNode();
     const { enabled } = useEditor((state) => ({
@@ -83,7 +89,9 @@ export const Container = ({
                 borderRadius: `${borderRadius}px`,
                 boxShadow,
                 cursor: 'default',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                backdropFilter: backdropBlur > 0 ? `blur(${backdropBlur}px)` : 'none',
+                WebkitBackdropFilter: backdropBlur > 0 ? `blur(${backdropBlur}px)` : 'none',
             }}
             className="transition-all"
         >
@@ -139,6 +147,8 @@ Container.craft = {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundOpacity: 0,
+        backdropBlur: 0,
+        backdropBlurColor: 'rgba(255, 255, 255, 0.1)',
     },
     rules: {
         canDrag: () => true,

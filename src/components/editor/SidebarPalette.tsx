@@ -140,6 +140,22 @@ export const SidebarPalette = () => {
                             <BookOpen size={18} className="text-[#495464]" />
                             <span className="text-[10px] font-bold text-[#495464] uppercase">Slide de Índice</span>
                         </div>
+
+                        {/* Modern Glass Hero Template */}
+                        <div
+                            ref={(ref: any) => ref && create(ref,
+                                <Element is={Container} canvas padding={60} height="100%" background="#F4F4F2" backgroundImage="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964&auto=format&fit=crop" alignItems="center" justifyContent="center">
+                                    <Element is={Container} canvas padding={40} background="rgba(255, 255, 255, 0.4)" backdropBlur={12} borderRadius={24} borderWidth={1} borderColor="rgba(255,255,255,0.4)" alignItems="center" justifyContent="center" height="auto" width="80%" boxShadow="0 25px 50px -12px rgba(0, 0, 0, 0.25)">
+                                        <Title text="MODERN GLASS DESIGN" fontSize={48} color="#1a1a1a" textAlign="center" />
+                                        <Text text="Create stunning presentations with professional visuals." color="#495464" textAlign="center" fontSize={18} />
+                                    </Element>
+                                </Element>
+                            )}
+                            className="bg-[#495464] p-3 rounded-xl flex items-center gap-3 cursor-grab hover:bg-[#3a4350] transition-colors border border-transparent hover:border-[#BBBFCA] group shadow-lg"
+                        >
+                            <Layout size={18} className="text-white" />
+                            <span className="text-[10px] font-bold text-white uppercase tracking-wider">Hero Glass (Modern)</span>
+                        </div>
                     </div>
                 </section>
             </div>

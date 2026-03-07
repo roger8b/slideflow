@@ -1,0 +1,5 @@
+{
+  "name": "SlideFlow",
+  "description": "A non-linear graph-based presentation tool with an infinite canvas and interactive navigation.",
+  "requestFramePermissions": []
+}

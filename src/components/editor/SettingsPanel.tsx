@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEditor, useNode } from '@craftjs/core';
-import { Settings, Image as ImageIcon, Box, Layout, Grid } from 'lucide-react';
+import { Settings, Image as ImageIcon, Box, Layout, Grid, Trash2 } from 'lucide-react';
 
 export const SettingsPanel = () => {
     const [activeTab, setActiveTab] = React.useState<'layout' | 'style' | 'config'>('layout');
@@ -29,7 +29,7 @@ export const SettingsPanel = () => {
     const applyStylePreset = (preset: 'soft' | 'glass' | 'outlined' | 'none') => {
         if (!selected) return;
 
-        actions.setProp(selected.id, (props) => {
+        actions.setProp(selected.id, (props: any) => {
             if (preset === 'soft') {
                 props.borderRadius = 16;
                 props.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
@@ -61,8 +61,8 @@ export const SettingsPanel = () => {
     };
 
     return selected ? (
-        <div className="bg-white border-b border-[#BBBFCA] flex flex-col h-full overflow-y-auto max-h-[100vh]">
-            <div className="flex bg-[#F4F4F2] border-b border-[#BBBFCA]">
+        <div className="bg-white border-b border-[#BBBFCA] flex flex-col flex-1 overflow-y-auto">
+            <div className="flex bg-[#F4F4F2] border-b border-[#BBBFCA] sticky top-0 z-10">
                 <button
                     onClick={() => setActiveTab('layout')}
                     className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'layout' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
@@ -84,9 +84,20 @@ export const SettingsPanel = () => {
             </div>
 
             <div className="p-5">
-                <div className="flex items-center gap-2 mb-6 text-[#495464]">
-                    <Settings size={14} className="animate-spin-slow" />
-                    <h3 className="font-black text-[11px] uppercase tracking-tighter">{selected.name} Editing</h3>
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2 text-[#495464]">
+                        <Settings size={14} className="animate-spin-slow" />
+                        <h3 className="font-black text-[11px] uppercase tracking-tighter">{selected.name} Editing</h3>
+                    </div>
+                    {selected.isDeletable && (
+                        <button
+                            onClick={() => actions.delete(selected.id)}
+                            className="p-2 text-[#BBBFCA] hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            title="Delete Component"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    )}
                 </div>
 
                 <div className="space-y-6">

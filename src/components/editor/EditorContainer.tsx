@@ -72,8 +72,13 @@ export const EditorContainer = ({
                 </header>
 
                 <div className="flex-1 flex overflow-hidden">
+                    {/* Left Sidebar: Component Palette & AI */}
+                    <div className="w-80 flex flex-col bg-white border-r border-[#BBBFCA] shadow-lg z-10">
+                        <SidebarPalette />
+                    </div>
+
                     {/* Main Canvas Area */}
-                    <div className="flex-1 overflow-y-auto p-12 bg-[#E8E8E8] flex justify-center items-center">
+                    <div className="flex-1 overflow-y-auto p-12 bg-[#E8E8E8] flex justify-center items-center relative">
                         <div
                             className="bg-white shadow-2xl border border-[#BBBFCA] relative flex flex-col overflow-hidden"
                             style={{
@@ -87,10 +92,10 @@ export const EditorContainer = ({
                             <Frame json={initialLayout}>
                                 <Element is={Container} padding={40} canvas flex={1} height="100%" />
                             </Frame>
-                            
+
                             {/* Grid Overlay */}
                             {showGrid && (
-                                <div 
+                                <div
                                     className="absolute inset-0 pointer-events-none z-10"
                                     style={{
                                         backgroundImage: `
@@ -106,10 +111,9 @@ export const EditorContainer = ({
                         </div>
                     </div>
 
-                    {/* Sidebar Area */}
-                    <div className="w-80 flex flex-col bg-white border-l border-[#BBBFCA]">
+                    {/* Right Sidebar: Contextual Settings */}
+                    <div className="w-80 flex flex-col bg-white border-l border-[#BBBFCA] shadow-lg z-10">
                         <SettingsPanel />
-                        <SidebarPalette />
                     </div>
                 </div>
             </Editor>

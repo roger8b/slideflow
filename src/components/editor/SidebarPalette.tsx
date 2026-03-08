@@ -16,12 +16,15 @@ import { Title } from './selectors/Title';
 import { Text } from './selectors/Text';
 import { Image } from './selectors/Image';
 
+import { AILayoutGenerator } from './AILayoutGenerator';
+
 export const SidebarPalette = () => {
     const { connectors: { create } } = useEditor();
 
     return (
-        <div className="flex-1 overflow-y-auto p-6 bg-white border-t border-[#BBBFCA]">
-            <div className="space-y-8">
+        <div className="flex-1 overflow-y-auto bg-white">
+            <AILayoutGenerator />
+            <div className="p-6 space-y-8">
                 {/* Basic Elements */}
                 <section>
                     <h3 className="text-[10px] font-black text-[#BBBFCA] uppercase tracking-widest mb-4 flex items-center gap-2">

@@ -10,9 +10,10 @@ export interface TitleProps {
     color?: string;
     textAlign?: 'left' | 'center' | 'right';
     fontWeight?: string;
+    fontFamily?: string;
 }
 
-export const Title = ({ text = 'New Title', fontSize = 48, color = '#495464', textAlign = 'left', fontWeight = 'bold' }: TitleProps) => {
+export const Title = ({ text = 'New Title', fontSize = 48, color = '#495464', textAlign = 'left', fontWeight = 'bold', fontFamily = 'inherit' }: TitleProps) => {
     const { connectors: { connect, drag }, actions: { setProp }, selected } = useNode((state: any) => ({
         selected: state.events.selected,
     }));
@@ -46,6 +47,7 @@ export const Title = ({ text = 'New Title', fontSize = 48, color = '#495464', te
                     color,
                     textAlign,
                     fontWeight,
+                    fontFamily,
                     margin: 0,
                     padding: '4px',
                     width: '100%',
@@ -62,6 +64,7 @@ Title.craft = {
         color: '#495464',
         textAlign: 'left',
         fontWeight: 'bold',
+        fontFamily: 'inherit',
     },
     displayName: 'Title',
     rules: {

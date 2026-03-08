@@ -36,6 +36,13 @@ export interface ThemeConfig {
   };
 }
 
+/**
+ * Optimized for 960x540 canvas (Half 1080p)
+ * Standard Google Slides scale (scaled 0.5x):
+ * Title: ~42px
+ * Body: ~20px
+ * Security Margin (Padding): 40px
+ */
 export const THEMES: Record<ThemeType, ThemeConfig> = {
   modern: {
     id: 'modern',
@@ -47,13 +54,13 @@ export const THEMES: Record<ThemeType, ThemeConfig> = {
       accent: '#3b82f6',
     },
     typography: {
-      fontFamily: 'sans-serif',
-      titleSize: 48,
+      fontFamily: 'Instrument Sans, sans-serif',
+      titleSize: 42,
       textSize: 20,
       titleWeight: '800',
     },
     layout: {
-      padding: 32,
+      padding: 40,
       gap: 24,
       borderRadius: 12,
     },
@@ -68,13 +75,13 @@ export const THEMES: Record<ThemeType, ThemeConfig> = {
       accent: '#495464',
     },
     typography: {
-      fontFamily: 'serif',
-      titleSize: 56,
+      fontFamily: 'EB Garamond, serif',
+      titleSize: 48,
       textSize: 22,
       titleWeight: 'bold',
     },
     layout: {
-      padding: 40,
+      padding: 60,
       gap: 20,
       borderRadius: 0,
     },
@@ -89,13 +96,13 @@ export const THEMES: Record<ThemeType, ThemeConfig> = {
       accent: '#3b82f6',
     },
     typography: {
-      fontFamily: 'sans-serif',
-      titleSize: 52,
-      textSize: 20,
+      fontFamily: 'Inter, sans-serif',
+      titleSize: 42,
+      textSize: 18,
       titleWeight: 'bold',
     },
     layout: {
-      padding: 32,
+      padding: 40,
       gap: 24,
       borderRadius: 16,
     },
@@ -110,15 +117,29 @@ export const THEMES: Record<ThemeType, ThemeConfig> = {
       accent: '#3b82f6',
     },
     typography: {
-      fontFamily: 'sans-serif',
-      titleSize: 48,
+      fontFamily: 'Outfit, sans-serif',
+      titleSize: 42,
       textSize: 18,
       titleWeight: '900',
     },
     layout: {
-      padding: 24,
+      padding: 32,
       gap: 16,
       borderRadius: 24,
     },
+  },
+};
+
+export const DEFAULT_NODE_DATA = {
+  text: {
+    content: '# New Slide\nWrite your markdown here...',
+  },
+  image: {
+    base64: '',
+    name: '',
+  },
+  video: {
+    base64: '',
+    name: '',
   },
 };

@@ -11,9 +11,10 @@ export interface TextProps {
     fontSize?: number;
     color?: string;
     textAlign?: 'left' | 'center' | 'right' | 'justify';
+    fontFamily?: string;
 }
 
-export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#495464', textAlign = 'left' }: TextProps) => {
+export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#495464', textAlign = 'left', fontFamily = 'inherit' }: TextProps) => {
     const { connectors: { connect, drag }, actions: { setProp }, selected } = useNode((state: any) => ({
         selected: state.events.selected,
     }));
@@ -61,7 +62,7 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#4954
                             color,
                             textAlign,
                             lineHeight: '1.5',
-                            fontFamily: 'monospace'
+                            fontFamily: isEditing ? 'monospace' : fontFamily
                         }}
                     />
                 ) : (
@@ -72,6 +73,7 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#4954
                             color,
                             textAlign,
                             lineHeight: '1.5',
+                            fontFamily,
                             padding: '4px',
                         }}
                     >
@@ -97,6 +99,7 @@ Text.craft = {
         fontSize: 18,
         color: '#495464',
         textAlign: 'left',
+        fontFamily: 'inherit',
     },
     displayName: 'Text',
     rules: {

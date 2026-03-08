@@ -209,9 +209,11 @@ const SlideFlowContent = () => {
             item.props.color = theme.colors.title;
             item.props.fontSize = theme.typography.titleSize;
             item.props.fontWeight = theme.typography.titleWeight;
+            item.props.fontFamily = theme.typography.fontFamily;
           } else if (item.type?.resolvedName === 'Text') {
             item.props.color = theme.colors.text;
             item.props.fontSize = theme.typography.textSize;
+            item.props.fontFamily = theme.typography.fontFamily;
           } else if (item.type?.resolvedName === 'Container' && item.isCanvas) {
             // Main container (the slide itself usually)
             if (key === 'ROOT') {

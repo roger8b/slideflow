@@ -17,6 +17,8 @@ export interface PresentationMetadata {
   version: string;
   createdAt: string;
   baseFontSize: number;
+  theme?: string;
+  useThemeDefaults?: boolean;
 }
 
 export interface PresentationFile {

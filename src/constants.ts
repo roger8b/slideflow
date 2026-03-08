@@ -12,16 +12,113 @@ export const COLOR_PALETTE = {
   dark: '#495464',
 };
 
-export const DEFAULT_NODE_DATA = {
-  text: {
-    content: '# New Slide\nWrite your markdown here...',
+export type ThemeType = 'modern' | 'classic' | 'dark' | 'glass';
+
+export interface ThemeConfig {
+  id: ThemeType;
+  name: string;
+  colors: {
+    background: string;
+    text: string;
+    title: string;
+    accent: string;
+  };
+  typography: {
+    fontFamily: string;
+    titleSize: number;
+    textSize: number;
+    titleWeight: string;
+  };
+  layout: {
+    padding: number;
+    gap: number;
+    borderRadius: number;
+  };
+}
+
+export const THEMES: Record<ThemeType, ThemeConfig> = {
+  modern: {
+    id: 'modern',
+    name: 'Modern Clean',
+    colors: {
+      background: '#FFFFFF',
+      text: '#495464',
+      title: '#1a1a1a',
+      accent: '#3b82f6',
+    },
+    typography: {
+      fontFamily: 'sans-serif',
+      titleSize: 48,
+      textSize: 20,
+      titleWeight: '800',
+    },
+    layout: {
+      padding: 32,
+      gap: 24,
+      borderRadius: 12,
+    },
   },
-  image: {
-    base64: '',
-    name: '',
+  classic: {
+    id: 'classic',
+    name: 'Classic Executive',
+    colors: {
+      background: '#F4F4F2',
+      text: '#495464',
+      title: '#1a1a1a',
+      accent: '#495464',
+    },
+    typography: {
+      fontFamily: 'serif',
+      titleSize: 56,
+      textSize: 22,
+      titleWeight: 'bold',
+    },
+    layout: {
+      padding: 40,
+      gap: 20,
+      borderRadius: 0,
+    },
   },
-  video: {
-    base64: '',
-    name: '',
+  dark: {
+    id: 'dark',
+    name: 'Midnight Pro',
+    colors: {
+      background: '#1a1a1a',
+      text: '#BBBFCA',
+      title: '#FFFFFF',
+      accent: '#3b82f6',
+    },
+    typography: {
+      fontFamily: 'sans-serif',
+      titleSize: 52,
+      textSize: 20,
+      titleWeight: 'bold',
+    },
+    layout: {
+      padding: 32,
+      gap: 24,
+      borderRadius: 16,
+    },
+  },
+  glass: {
+    id: 'glass',
+    name: 'Future Glass',
+    colors: {
+      background: 'rgba(255, 255, 255, 0.7)',
+      text: '#495464',
+      title: '#1a1a1a',
+      accent: '#3b82f6',
+    },
+    typography: {
+      fontFamily: 'sans-serif',
+      titleSize: 48,
+      textSize: 18,
+      titleWeight: '900',
+    },
+    layout: {
+      padding: 24,
+      gap: 16,
+      borderRadius: 24,
+    },
   },
 };

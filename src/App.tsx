@@ -25,15 +25,17 @@ import {
   Edit3,
   Trash2,
   Monitor,
-  X
+  X,
+  Palette
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 import { CustomNode } from './components/CustomNodes';
 import { EditorContainer } from './components/editor/EditorContainer';
 import { MetadataModal } from './components/MetadataModal';
+import { ThemeModal } from './components/ThemeModal';
 import { AppMode, SlideNode, SlideNodeData, PresentationFile, PresentationMetadata } from './types';
-import { COLOR_PALETTE, cn } from './constants';
+import { COLOR_PALETTE, cn, THEMES, ThemeType } from './constants';
 
 // Node types moved inside component and memoized to avoid React Flow warning
 
@@ -62,12 +64,14 @@ const SlideFlowContent = () => {
   const [isMetadataOpen, setIsMetadataOpen] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [isPlayerControlsVisible, setIsPlayerControlsVisible] = useState(false);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [metadata, setMetadata] = useState<PresentationMetadata>({
     title: 'New Presentation',
     author: 'Anonymous',
     version: '1.0.0',
     createdAt: new Date().toISOString(),
     baseFontSize: 32,
+    theme: 'modern',
   });
 
   const { fitView, setViewport, toObject } = useReactFlow();
@@ -185,6 +189,54 @@ const SlideFlowContent = () => {
 
   // --- Persistence ---
 
+  // --- Presentation Logic ---
+
+  const applyThemeToNodes = useCallback((themeId: string) => {
+    const theme = THEMES[themeId as ThemeType];
+    if (!theme) return;
+
+    setNodes((nds) => nds.map((node) => {
+      // Craft.js layout is stored as a JSON string
+      if (!node.data.layout) return node;
+
+      try {
+        const layout = JSON.parse(node.data.layout);
+
+        // Update all nodes in the Craft instance
+        Object.keys(layout).forEach(key => {
+          const item = layout[key];
+          if (item.type?.resolvedName === 'Title') {
+            item.props.color = theme.colors.title;
+            item.props.fontSize = theme.typography.titleSize;
+            item.props.fontWeight = theme.typography.titleWeight;
+          } else if (item.type?.resolvedName === 'Text') {
+            item.props.color = theme.colors.text;
+            item.props.fontSize = theme.typography.textSize;
+          } else if (item.type?.resolvedName === 'Container' && item.isCanvas) {
+            // Main container (the slide itself usually)
+            if (key === 'ROOT') {
+              item.props.background = theme.colors.background;
+              item.props.padding = theme.layout.padding;
+              item.props.gap = theme.layout.gap;
+              item.props.borderRadius = theme.layout.borderRadius;
+            }
+          }
+        });
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            layout: JSON.stringify(layout)
+          }
+        };
+      } catch (err) {
+        console.error("Failed to apply theme to node:", err);
+        return node;
+      }
+    }));
+  }, [setNodes]);
+
   const savePresentation = useCallback((title: string, author: string, baseFontSize: number) => {
     if (!rfInstance) return;
 
@@ -276,6 +328,14 @@ const SlideFlowContent = () => {
               <Plus size={18} /> Add Slide
             </button>
             <div className="w-px h-6 bg-[#BBBFCA] mx-2" />
+            <button
+              onClick={() => setIsThemeModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-[#E8E8E8] hover:border-[#495464] text-[#495464] rounded-lg transition-all font-bold text-sm"
+              title="Change Global Style"
+            >
+              <Palette size={18} /> Design
+            </button>
+            <div className="w-px h-6 bg-[#BBBFCA] mx-1" />
             <button
               onClick={() => setIsMetadataOpen(true)}
               className="p-2 hover:bg-[#E8E8E8] rounded-lg transition-colors text-[#495464]"
@@ -464,6 +524,17 @@ const SlideFlowContent = () => {
         initialTitle={metadata.title}
         initialAuthor={metadata.author}
         initialBaseFontSize={metadata.baseFontSize}
+      />
+
+      <ThemeModal
+        isOpen={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(true)} // Keep open or just for visual
+        onApply={(theme) => {
+          applyThemeToNodes(theme);
+          setMetadata(prev => ({ ...prev, theme }));
+          setIsThemeModalOpen(false);
+        }}
+        currentTheme={metadata.theme}
       />
     </div>
   );

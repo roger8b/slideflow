@@ -4,7 +4,6 @@ import { Settings, Image as ImageIcon, Box, Layout, Grid, Trash2 } from 'lucide-
 
 export const SettingsPanel = () => {
     const [activeTab, setActiveTab] = React.useState<'layout' | 'style' | 'config'>('layout');
-    const [showGrid, setShowGrid] = React.useState(false);
 
     const { actions, selected } = useEditor((state, query) => {
         const [currentNodeId] = state.events.selected;
@@ -189,29 +188,6 @@ export const SettingsPanel = () => {
                                     </div>
                                 </div>
                             )}
-
-                            {/* Grid Helper */}
-                            <div className="space-y-3">
-                                <h4 className="flex items-center gap-2 text-[11px] font-black text-[#495464] uppercase border-b border-[#E8E8E8] pb-1">
-                                    <Grid size={12} /> Grid Helper
-                                </h4>
-                                <div className="flex items-center justify-between">
-                                    <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Show Positioning Grid</label>
-                                    <button
-                                        onClick={() => {
-                                            setShowGrid(!showGrid);
-                                            // Dispatch custom event to communicate with EditorContainer
-                                            window.dispatchEvent(new CustomEvent('toggleGrid', { detail: !showGrid }));
-                                        }}
-                                        className={`w-12 h-6 rounded-full transition-all ${showGrid ? 'bg-[#495464]' : 'bg-[#BBBFCA]'} relative`}
-                                    >
-                                        <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${showGrid ? 'translate-x-7' : 'translate-x-1'}`} />
-                                    </button>
-                                </div>
-                                <p className="text-[9px] text-[#BBBFCA] italic leading-relaxed">
-                                    Visual grid helps with precise component positioning
-                                </p>
-                            </div>
 
                             {(selected.name !== 'Container') && (
                                 <div className="p-4 text-center text-[#BBBFCA] text-[10px] uppercase font-bold italic">

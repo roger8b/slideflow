@@ -25,17 +25,6 @@ export const EditorContainer = ({
     initialLayout,
     nodeLabel
 }: EditorContainerProps) => {
-    const [showGrid, setShowGrid] = React.useState(false);
-
-    // Listen for grid toggle events
-    React.useEffect(() => {
-        const handleToggleGrid = (event: CustomEvent) => {
-            setShowGrid(event.detail);
-        };
-
-        window.addEventListener('toggleGrid', handleToggleGrid as EventListener);
-        return () => window.removeEventListener('toggleGrid', handleToggleGrid as EventListener);
-    }, []);
 
     if (!isOpen) return null;
 
@@ -94,22 +83,6 @@ export const EditorContainer = ({
                             <Frame json={initialLayout}>
                                 <Element is={Container} padding={40} canvas flex={1} height="100%" />
                             </Frame>
-
-                            {/* Grid Overlay */}
-                            {showGrid && (
-                                <div
-                                    className="absolute inset-0 pointer-events-none z-10"
-                                    style={{
-                                        backgroundImage: `
-                                            linear-gradient(rgba(73, 84, 100, 0.15) 1px, transparent 1px),
-                                            linear-gradient(90deg, rgba(73, 84, 100, 0.15) 1px, transparent 1px),
-                                            linear-gradient(rgba(73, 84, 100, 0.05) 1px, transparent 1px),
-                                            linear-gradient(90deg, rgba(73, 84, 100, 0.05) 1px, transparent 1px)
-                                        `,
-                                        backgroundSize: '80px 80px, 80px 80px, 20px 20px, 20px 20px'
-                                    }}
-                                />
-                            )}
                         </div>
                     </div>
 

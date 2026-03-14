@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useEditor, useNode } from '@craftjs/core';
-import { Settings, Image as ImageIcon, Box, Layout, Grid, Trash2 } from 'lucide-react';
+import { Settings, Image as ImageIcon, Box, Layout, Grid, Trash2, Layers, BookmarkPlus } from 'lucide-react';
+import { LayersTree } from './LayersTree';
+import { saveBlock } from '../../lib/savedBlocks';
 
 export const SettingsPanel = () => {
-    const [activeTab, setActiveTab] = React.useState<'layout' | 'style' | 'config'>('layout');
+    const [activeTab, setActiveTab] = React.useState<'layers' | 'layout' | 'style' | 'config'>('layout');
+    const [isSavingBlock, setIsSavingBlock] = useState(false);
+    const [blockName, setBlockName] = useState('');
 
-    const { actions, selected } = useEditor((state, query) => {
+    const { actions, selected, query } = useEditor((state, query) => {
         const [currentNodeId] = state.events.selected;
         let selected;
 
@@ -22,8 +26,21 @@ export const SettingsPanel = () => {
 
         return {
             selected,
+            query
         };
     });
+
+    const handleSaveBlock = () => {
+        if (!selected || !blockName.trim()) return;
+        try {
+            const tree = query.node(selected.id).toNodeTree();
+            saveBlock(blockName, tree);
+            setIsSavingBlock(false);
+            setBlockName('');
+        } catch (err) {
+            console.error("Failed to save block", err);
+        }
+    };
 
     const applyStylePreset = (preset: 'soft' | 'glass' | 'outlined' | 'none') => {
         if (!selected) return;
@@ -60,23 +77,29 @@ export const SettingsPanel = () => {
     };
 
     return selected ? (
-        <div className="bg-white border-b border-[#BBBFCA] flex flex-col flex-1 overflow-y-auto">
-            <div className="flex bg-[#F4F4F2] border-b border-[#BBBFCA] sticky top-0 z-10">
+        <div className="bg-white border-b border-[#BBBFCA] flex flex-col flex-1 overflow-y-auto w-80">
+            <div className="flex bg-[#F4F4F2] border-b border-[#BBBFCA] sticky top-0 z-10 flex-wrap">
+                <button
+                    onClick={() => setActiveTab('layers')}
+                    className={`flex-1 py-3 px-1 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'layers' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
+                >
+                    Layers
+                </button>
                 <button
                     onClick={() => setActiveTab('layout')}
-                    className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'layout' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
+                    className={`flex-1 py-3 px-1 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'layout' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
                 >
                     Layout
                 </button>
                 <button
                     onClick={() => setActiveTab('style')}
-                    className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'style' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
+                    className={`flex-1 py-3 px-1 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'style' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
                 >
                     Estilo
                 </button>
                 <button
                     onClick={() => setActiveTab('config')}
-                    className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
+                    className={`flex-1 py-3 px-1 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
                 >
                     Configs
                 </button>
@@ -88,18 +111,64 @@ export const SettingsPanel = () => {
                         <Settings size={14} className="animate-spin-slow" />
                         <h3 className="font-black text-[11px] uppercase tracking-tighter">{selected.name} Editing</h3>
                     </div>
-                    {selected.isDeletable && (
-                        <button
-                            onClick={() => actions.delete(selected.id)}
-                            className="p-2 text-[#BBBFCA] hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                            title="Delete Component"
-                        >
-                            <Trash2 size={16} />
-                        </button>
-                    )}
+                    <div className="flex items-center gap-1">
+                        {selected.name === 'Container' && (
+                            <button
+                                onClick={() => setIsSavingBlock(!isSavingBlock)}
+                                className="p-2 text-[#BBBFCA] hover:text-[#495464] hover:bg-[#E8E8E8] rounded-lg transition-all"
+                                title="Save as Template"
+                            >
+                                <BookmarkPlus size={16} />
+                            </button>
+                        )}
+                        {selected.isDeletable && (
+                            <button
+                                onClick={() => actions.delete(selected.id)}
+                                className="p-2 text-[#BBBFCA] hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                title="Delete Component"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
+                {/* Save Block Input Area */}
+                {isSavingBlock && selected.name === 'Container' && (
+                    <div className="mb-6 p-3 bg-[#F4F4F2] border border-[#BBBFCA] rounded-xl flex flex-col gap-2 animate-in slide-in-from-top-2">
+                        <label className="text-[10px] font-bold text-[#495464] uppercase tracking-widest">Template Name</label>
+                        <div className="flex gap-2">
+                            <input
+                                autoFocus
+                                type="text"
+                                value={blockName}
+                                onChange={(e) => setBlockName(e.target.value)}
+                                placeholder="E.g., Hero Card"
+                                className="flex-1 bg-white border border-[#BBBFCA] rounded p-2 text-xs focus:ring-1 focus:ring-[#495464] outline-none"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveBlock();
+                                    if (e.key === 'Escape') setIsSavingBlock(false);
+                                }}
+                            />
+                            <button
+                                onClick={handleSaveBlock}
+                                disabled={!blockName.trim()}
+                                className="px-3 bg-[#495464] text-white rounded text-xs font-bold hover:bg-[#3a4350] disabled:opacity-50 transition-colors"
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <div className="space-y-6">
+                    {/* --- LAYERS TAB --- */}
+                    {activeTab === 'layers' && (
+                        <div className="animate-in slide-in-from-left duration-200">
+                            <LayersTree />
+                        </div>
+                    )}
+
                     {/* --- LAYOUT TAB --- */}
                     {activeTab === 'layout' && (
                         <div className="animate-in slide-in-from-left duration-200">

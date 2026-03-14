@@ -1,0 +1,75 @@
+## 🧠 Brainstorm: Melhorias na Construção e Edição (Slideflow)
+
+### Contexto
+O usuário precisa de melhorias focadas especificamente na etapa de **construção** dos slides. Isso envolve o ambiente de edição (Craft.js), a forma como os componentes são manipulados, estilizados e organizados na tela. O objetivo é tornar a criação da apresentação mais fluida, precisa e com ferramentas de design de nível profissional.
+
+---
+
+### Option A: Árvore de Camadas (Layers Panel)
+**Descrição:** Adicionar um painel lateral (ou uma aba dedicada no painel direito) que exiba a hierarquia estrutural do slide atual (ex: `Slide Root > Container Principal > [Imagem, Container de Texto > (Título, Parágrafo)]`).
+
+✅ **Pros:**
+- Facilita imensamente a seleção de componentes sobrepostos ou containers que estão "escondidos" atrás do padding de outros elementos.
+- Permite reordenar elementos (z-index ou ordem no DOM) simplesmente arrastando na árvore.
+
+❌ **Cons:**
+- Consome espaço na tela (UI complexity).
+- Requer sincronização profunda com a árvore do Craft.js (`query.node().toNodeTree()`).
+
+📊 **Effort:** Medium
+
+---
+
+### Option B: Guias Inteligentes e Alinhamento Automático (Smart Guides & Snapping)
+**Descrição:** Assim como no Figma ou Canva, ao arrastar ou redimensionar um componente no editor, linhas magnéticas (vermelhas ou azuis) apareceriam para indicar alinhamento alinhamento central, esquerdo ou direito com outros componentes próximos ou com o centro do slide.
+
+✅ **Pros:**
+- Eleva a sensação "premium" do produto de forma drástica.
+- Resolve a dificuldade de fazer alinhamentos perfeitos no "olho".
+
+❌ **Cons:**
+- Extremamente complexo de implementar do zero em React. Exigiria calcular a bounding box de todos os componentes na tela a cada frame do drag-and-drop.
+- Pode degradar a performance se não for otimizado (uso de RequestAnimationFrame).
+
+📊 **Effort:** High
+
+---
+
+### Option C: Multi-Seleção e Ações em Massa (Multi-select)
+**Descrição:** Permitir que o usuário segure a tecla `Shift` para selecionar vários componentes ao mesmo tempo, ou desenhe uma "caixa de seleção" com o mouse. Com vários selecionados, o painel de configurações aplicaria estilos em lote (ex: alterar a fonte de 3 textos de uma vez) ou permitiria ações como "Alinhar ao Topo" ou "Distribuir espaço igualmente".
+
+✅ **Pros:**
+- Acelera muito o fluxo de trabalho durante a construção de slides complexos.
+- Ferramenta padrão esperada em editores profissionais.
+
+❌ **Cons:**
+- O Craft.js até suporta multi-seleção nativamente, mas a UI customizada do [SettingsPanel](file:///Users/roger.silva/Downloads/slideflow/src/components/editor/SettingsPanel.tsx#5-378) precisaria ser fortemente refatorada para entender quando deve exibir propriedades compartilhadas ou ações de alinhamento.
+
+📊 **Effort:** Medium to High
+
+---
+
+### Option D: Biblioteca de Componentes Customizados (Saved Blocks)
+**Descrição:** O usuário cria um bloco complexo (ex: um Container com uma imagem arredondada, título e texto formatados como um "Card de Produto"). Ele clica em "Salvar como Novo Bloco". Esse bloco passa a existir permanentemente na aba da esquerda (Palette) para ser arrastado em qualquer outro slide.
+
+✅ **Pros:**
+- Promove a reutilização e eficiência extrema na construção.
+- O formato de persistência já é serializável pelo Craft.js (JSON), facilitando a implementação.
+
+❌ **Cons:**
+- Exige criação de uma nova estrutura no estado global (ou banco de dados) para armazenar os "Favoritos/Customizados".
+
+📊 **Effort:** Low to Medium
+
+---
+
+## 💡 Recommendation
+
+Recomendo a **Option A (Árvore de Camadas)** em conjunto com a **Option D (Biblioteca de Compartilhados)**. 
+
+A **Árvore de Camadas** resolve frustrações imediatas de usabilidade (como não conseguir clicar no container pai).
+A **Biblioteca de Componentes** dá um salto gigante na rapidez de construção de apresentações grandes, com esforço técnico relativamente baixo.
+
+As opções de Smart Snapping e Multi-seleção são incríveis, mas costumam adicionar uma barreira altíssima de fricção técnica neste momento do desenvolvimento.
+
+Qual direção você gostaria de explorar?

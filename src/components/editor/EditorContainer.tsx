@@ -6,6 +6,7 @@ import { Text } from './selectors/Text';
 import { Image } from './selectors/Image';
 import { SidebarPalette } from './SidebarPalette';
 import { SettingsPanel } from './SettingsPanel';
+import { KeyboardShortcuts } from './KeyboardShortcuts';
 import { X, Save, Layers } from 'lucide-react';
 import { SlideNodeData } from '../../types';
 
@@ -48,6 +49,7 @@ export const EditorContainer = ({
                     Image,
                 }}
             >
+                <KeyboardShortcuts />
                 {/* Editor Header */}
                 <header className="h-16 bg-white border-b border-[#BBBFCA] flex items-center justify-between px-6 shadow-sm">
                     <div className="flex items-center gap-4">

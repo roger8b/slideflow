@@ -1,11 +1,29 @@
 import React, { useState } from 'react';
-import { useEditor, useNode } from '@craftjs/core';
-import { Settings, Image as ImageIcon, Box, Layout, Grid, Trash2, Layers, BookmarkPlus } from 'lucide-react';
-import { LayersTree } from './LayersTree';
+import { useEditor } from '@craftjs/core';
+import { AlignLeft, AlignCenter, AlignRight, Box, Trash2, BookmarkPlus, ChevronDown, ChevronRight } from 'lucide-react';
 import { saveBlock } from '../../lib/savedBlocks';
 
+const Section = ({ title, children, defaultOpen = true }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    return (
+        <div className="border-b border-[#E5E5E5]">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
+            >
+                <span className="text-[10px] font-semibold tracking-wide uppercase text-[#333333] select-none">{title}</span>
+                {isOpen ? <ChevronDown size={14} className="text-[#888888]" /> : <ChevronRight size={14} className="text-[#888888]" />}
+            </button>
+            {isOpen && (
+                <div className="px-3 pb-3 space-y-3 animate-in slide-in-from-top-1 fade-in duration-200">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const SettingsPanel = () => {
-    const [activeTab, setActiveTab] = React.useState<'layers' | 'layout' | 'style' | 'config'>('layout');
     const [isSavingBlock, setIsSavingBlock] = useState(false);
     const [blockName, setBlockName] = useState('');
 
@@ -17,9 +35,7 @@ export const SettingsPanel = () => {
             selected = {
                 id: currentNodeId,
                 name: state.nodes[currentNodeId].data.name,
-                settings: state.nodes[currentNodeId].related && state.nodes[currentNodeId].related.settings,
                 isDeletable: query.node(currentNodeId).isDeletable(),
-                isEnabled: state.options.enabled,
                 props: state.nodes[currentNodeId].data.props,
             };
         }
@@ -42,405 +58,289 @@ export const SettingsPanel = () => {
         }
     };
 
-    const applyStylePreset = (preset: 'soft' | 'glass' | 'outlined' | 'none') => {
-        if (!selected) return;
-
-        actions.setProp(selected.id, (props: any) => {
-            if (preset === 'soft') {
-                props.borderRadius = 16;
-                props.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
-                props.borderWidth = 0;
-                props.background = '#ffffff';
-            } else if (preset === 'glass') {
-                props.borderRadius = 16;
-                props.background = 'rgba(255, 255, 255, 0.4)';
-                props.boxShadow = '0 8px 32px 0 rgba(31, 38, 135, 0.07)';
-                props.borderWidth = 1;
-                props.borderColor = 'rgba(255, 255, 255, 0.3)';
-                props.backdropBlur = 10;
-            } else if (preset === 'outlined') {
-                props.borderRadius = 8;
-                props.borderWidth = 2;
-                props.borderColor = '#495464';
-                props.boxShadow = 'none';
-                props.background = 'transparent';
-            } else if (preset === 'none') {
-                props.borderRadius = 0;
-                props.borderWidth = 0;
-                props.boxShadow = 'none';
-                props.background = 'transparent';
-                props.backgroundImage = '';
-                props.backgroundOpacity = 0;
-                props.backdropBlur = 0;
-            }
-        });
+    const setProp = (key: string, value: any) => {
+        if (selected) {
+            actions.setProp(selected.id, (props) => {
+                props[key] = value;
+            });
+        }
     };
 
-    return selected ? (
-        <div className="bg-white border-b border-[#BBBFCA] flex flex-col flex-1 overflow-y-auto w-80">
-            <div className="flex bg-[#F4F4F2] border-b border-[#BBBFCA] sticky top-0 z-10 flex-wrap">
-                <button
-                    onClick={() => setActiveTab('layers')}
-                    className={`flex-1 py-3 px-1 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'layers' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
-                >
-                    Layers
-                </button>
-                <button
-                    onClick={() => setActiveTab('layout')}
-                    className={`flex-1 py-3 px-1 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'layout' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
-                >
-                    Layout
-                </button>
-                <button
-                    onClick={() => setActiveTab('style')}
-                    className={`flex-1 py-3 px-1 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'style' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
-                >
-                    Estilo
-                </button>
-                <button
-                    onClick={() => setActiveTab('config')}
-                    className={`flex-1 py-3 px-1 text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-white text-[#495464] border-b-2 border-[#495464]' : 'text-[#BBBFCA] hover:text-[#495464]'}`}
-                >
-                    Configs
-                </button>
+    if (!selected) {
+        return (
+            <div className="w-64 shrink-0 bg-[#F5F5F5] border-l border-[#E5E5E5] flex items-center justify-center">
+                <p className="text-[11px] text-[#BBBFCA] select-none">No layer selected</p>
             </div>
+        );
+    }
 
-            <div className="p-5">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2 text-[#495464]">
-                        <Settings size={14} className="animate-spin-slow" />
-                        <h3 className="font-black text-[11px] uppercase tracking-tighter">{selected.name} Editing</h3>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        {selected.name === 'Container' && (
-                            <button
-                                onClick={() => setIsSavingBlock(!isSavingBlock)}
-                                className="p-2 text-[#BBBFCA] hover:text-[#495464] hover:bg-[#E8E8E8] rounded-lg transition-all"
-                                title="Save as Template"
-                            >
-                                <BookmarkPlus size={16} />
-                            </button>
-                        )}
-                        {selected.isDeletable && (
-                            <button
-                                onClick={() => actions.delete(selected.id)}
-                                className="p-2 text-[#BBBFCA] hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                title="Delete Component"
-                            >
-                                <Trash2 size={16} />
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {/* Save Block Input Area */}
-                {isSavingBlock && selected.name === 'Container' && (
-                    <div className="mb-6 p-3 bg-[#F4F4F2] border border-[#BBBFCA] rounded-xl flex flex-col gap-2 animate-in slide-in-from-top-2">
-                        <label className="text-[10px] font-bold text-[#495464] uppercase tracking-widest">Template Name</label>
-                        <div className="flex gap-2">
-                            <input
-                                autoFocus
-                                type="text"
-                                value={blockName}
-                                onChange={(e) => setBlockName(e.target.value)}
-                                placeholder="E.g., Hero Card"
-                                className="flex-1 bg-white border border-[#BBBFCA] rounded p-2 text-xs focus:ring-1 focus:ring-[#495464] outline-none"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleSaveBlock();
-                                    if (e.key === 'Escape') setIsSavingBlock(false);
-                                }}
-                            />
-                            <button
-                                onClick={handleSaveBlock}
-                                disabled={!blockName.trim()}
-                                className="px-3 bg-[#495464] text-white rounded text-xs font-bold hover:bg-[#3a4350] disabled:opacity-50 transition-colors"
-                            >
-                                Save
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                <div className="space-y-6">
-                    {/* --- LAYERS TAB --- */}
-                    {activeTab === 'layers' && (
-                        <div className="animate-in slide-in-from-left duration-200">
-                            <LayersTree />
-                        </div>
-                    )}
-
-                    {/* --- LAYOUT TAB --- */}
-                    {activeTab === 'layout' && (
-                        <div className="animate-in slide-in-from-left duration-200">
-                            {(selected.name === 'Container') && (
-                                <div className="space-y-6">
-                                    <div className="space-y-3">
-                                        <h4 className="flex items-center gap-2 text-[11px] font-black text-[#495464] uppercase border-b border-[#E8E8E8] pb-1">
-                                            <Layout size={12} /> Flex Configuration
-                                        </h4>
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Direction</label>
-                                            <select
-                                                value={selected.props.flexDirection}
-                                                onChange={(e) => actions.setProp(selected.id, (props) => (props.flexDirection = e.target.value))}
-                                                className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                                            >
-                                                <option value="row">Row (Horizontal)</option>
-                                                <option value="column">Column (Vertical)</option>
-                                            </select>
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Horizontal Align</label>
-                                            <select
-                                                value={selected.props.alignItems}
-                                                onChange={(e) => actions.setProp(selected.id, (props) => (props.alignItems = e.target.value))}
-                                                className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                                            >
-                                                <option value="flex-start">Start</option>
-                                                <option value="center">Center</option>
-                                                <option value="flex-end">End</option>
-                                                <option value="stretch">Stretch</option>
-                                            </select>
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Vertical Align</label>
-                                            <select
-                                                value={selected.props.justifyContent}
-                                                onChange={(e) => actions.setProp(selected.id, (props) => (props.justifyContent = e.target.value))}
-                                                className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                                            >
-                                                <option value="flex-start">Start</option>
-                                                <option value="center">Center</option>
-                                                <option value="flex-end">End</option>
-                                                <option value="space-between">Space Between</option>
-                                            </select>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="flex flex-col gap-1">
-                                                <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Gap</label>
-                                                <input
-                                                    type="number"
-                                                    value={selected.props.gap}
-                                                    onChange={(e) => actions.setProp(selected.id, (props) => (props.gap = parseInt(e.target.value)))}
-                                                    className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                                                />
-                                            </div>
-                                            <div className="flex flex-col gap-1">
-                                                <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Padding</label>
-                                                <input
-                                                    type="number"
-                                                    value={selected.props.padding}
-                                                    onChange={(e) => actions.setProp(selected.id, (props) => (props.padding = parseInt(e.target.value)))}
-                                                    className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Height Mode</label>
-                                            <select
-                                                value={selected.props.height === 'auto' ? 'auto' : selected.props.height === '100%' ? 'fill' : 'fixed'}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    actions.setProp(selected.id, (props) => {
-                                                        if (val === 'auto') props.height = 'auto';
-                                                        else if (val === 'fill') props.height = '100%';
-                                                        else props.height = '300';
-                                                    });
-                                                }}
-                                                className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                                            >
-                                                <option value="auto">Auto (Content)</option>
-                                                <option value="fill">Fill (100%)</option>
-                                                <option value="fixed">Fixed (Pixels)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {(selected.name !== 'Container') && (
-                                <div className="p-4 text-center text-[#BBBFCA] text-[10px] uppercase font-bold italic">
-                                    Configurável apenas via Layout de Slide
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* --- STYLE TAB --- */}
-                    {activeTab === 'style' && (
-                        <div className="animate-in slide-in-from-left duration-200 space-y-6">
-                            {(selected.name === 'Title' || selected.name === 'Text') && (
-                                <div className="space-y-4">
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Font Size</label>
-                                        <input
-                                            type="number"
-                                            value={selected.props.fontSize || 18}
-                                            onChange={(e) => actions.setProp(selected.id, (props) => (props.fontSize = parseInt(e.target.value)))}
-                                            className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Text Alignment</label>
-                                        <select
-                                            value={selected.props.textAlign || 'left'}
-                                            onChange={(e) => actions.setProp(selected.id, (props) => (props.textAlign = e.target.value))}
-                                            className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                                        >
-                                            <option value="left">Left</option>
-                                            <option value="center">Center</option>
-                                            <option value="right">Right</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            )}
-
-                            {selected.name === 'Container' && (
-                                <div className="space-y-6">
-                                    <div className="space-y-3">
-                                        <h4 className="flex items-center gap-2 text-[11px] font-black text-[#495464] uppercase border-b border-[#E8E8E8] pb-1">
-                                            <Box size={12} /> Aesthetics
-                                        </h4>
-
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Background Color</label>
-                                            <div className="flex gap-2 items-center">
-                                                <input
-                                                    type="color"
-                                                    value={selected.props.background === 'transparent' ? '#ffffff' : (selected.props.background && selected.props.background.startsWith('#') ? selected.props.background : '#ffffff')}
-                                                    onChange={(e) => actions.setProp(selected.id, (props) => (props.background = e.target.value))}
-                                                    className="w-8 h-8 rounded border-none bg-transparent"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={selected.props.background}
-                                                    onChange={(e) => actions.setProp(selected.id, (props) => (props.background = e.target.value))}
-                                                    className="flex-1 bg-[#E8E8E8] border-none rounded p-2 text-[10px] uppercase font-mono"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="flex flex-col gap-1">
-                                                <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Corner Radius</label>
-                                                <input
-                                                    type="number"
-                                                    value={selected.props.borderRadius || 0}
-                                                    onChange={(e) => actions.setProp(selected.id, (props) => (props.borderRadius = parseInt(e.target.value)))}
-                                                    className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                                                />
-                                            </div>
-                                            <div className="flex flex-col gap-1">
-                                                <label className="text-[10px] font-bold text-[#BBBFCA] uppercase">Border Width</label>
-                                                <input
-                                                    type="number"
-                                                    value={selected.props.borderWidth || 0}
-                                                    onChange={(e) => actions.setProp(selected.id, (props) => (props.borderWidth = parseInt(e.target.value)))}
-                                                    className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase leading-relaxed">
-                                                Backdrop Blur (Glass effect) - {selected.props.backdropBlur || 0}px
-                                            </label>
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="40"
-                                                value={selected.props.backdropBlur || 0}
-                                                onChange={(e) => actions.setProp(selected.id, (props) => (props.backdropBlur = parseInt(e.target.value)))}
-                                                className="w-full h-2 bg-[#E8E8E8] rounded-lg appearance-none cursor-pointer accent-[#495464]"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <h4 className="flex items-center gap-2 text-[11px] font-black text-[#495464] uppercase border-b border-[#E8E8E8] pb-1">
-                                            <ImageIcon size={12} /> Background Image
-                                        </h4>
-                                        <input
-                                            type="text"
-                                            value={selected.props.backgroundImage || ''}
-                                            onChange={(e) => actions.setProp(selected.id, (props) => (props.backgroundImage = e.target.value))}
-                                            placeholder="URL..."
-                                            className="w-full bg-[#E8E8E8] border-none rounded p-2 text-[10px] focus:ring-1 focus:ring-[#495464] outline-none"
-                                        />
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-[10px] font-bold text-[#BBBFCA] uppercase italic">Overlay Strength - {selected.props.backgroundOpacity || 0}%</label>
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="100"
-                                                value={selected.props.backgroundOpacity || 0}
-                                                onChange={(e) => actions.setProp(selected.id, (props) => (props.backgroundOpacity = parseInt(e.target.value)))}
-                                                className="w-full h-2 bg-[#E8E8E8] rounded-lg appearance-none cursor-pointer accent-[#495464]"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {selected.name === 'Image' && (
-                                <div className="space-y-3">
-                                    <h4 className="flex items-center gap-2 text-[11px] font-black text-[#495464] uppercase border-b border-[#E8E8E8] pb-1">
-                                        <ImageIcon size={12} /> Source URL
-                                    </h4>
-                                    <input
-                                        type="text"
-                                        value={selected.props.src || ''}
-                                        onChange={(e) => actions.setProp(selected.id, (props) => (props.src = e.target.value))}
-                                        placeholder="Paste image URL..."
-                                        className="w-full bg-[#E8E8E8] border-none rounded p-2 text-sm focus:ring-1 focus:ring-[#495464] outline-none"
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* --- CONFIGS TAB --- */}
-                    {activeTab === 'config' && (
-                        <div className="animate-in slide-in-from-left duration-200 space-y-6">
-                            {selected.name === 'Container' && (
-                                <div className="space-y-4">
-                                    <h4 className="flex items-center gap-2 text-[11px] font-black text-[#495464] uppercase border-b border-[#E8E8E8] pb-1">
-                                        Quick Presets
-                                    </h4>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={() => applyStylePreset('soft')} className="px-1 py-2 bg-[#F4F4F2] text-[10px] font-extrabold text-[#495464] rounded hover:bg-[#BBBFCA] transition-all uppercase shadow-sm">Soft UI</button>
-                                        <button onClick={() => applyStylePreset('glass')} className="px-1 py-2 bg-[#F4F4F2] text-[10px] font-extrabold text-[#495464] rounded hover:bg-[#BBBFCA] transition-all uppercase shadow-sm">Modern Glass</button>
-                                        <button onClick={() => applyStylePreset('outlined')} className="px-1 py-2 bg-[#F4F4F2] text-[10px] font-extrabold text-[#495464] rounded hover:bg-[#BBBFCA] transition-all uppercase shadow-sm">Minimal Outlined</button>
-                                        <button onClick={() => applyStylePreset('none')} className="px-1 py-2 bg-red-50 text-[10px] font-extrabold text-red-600 rounded hover:bg-red-100 transition-all uppercase shadow-sm">Clear Style</button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {selected.name === 'Text' && (
-                                <div className="flex flex-col gap-1">
-                                    <label className="text-[10px] font-bold text-[#BBBFCA] uppercase mb-1">Markdown Content Editor</label>
-                                    <textarea
-                                        value={selected.props.text}
-                                        onChange={(e) => actions.setProp(selected.id, (props) => (props.text = e.target.value))}
-                                        className="w-full bg-[#E8E8E8] border-none rounded p-3 text-sm focus:ring-1 focus:ring-[#495464] outline-none h-48 resize-none font-mono leading-relaxed"
-                                        placeholder="Write your content here..."
-                                    />
-                                </div>
-                            )}
-
-                            <div className="pt-4 border-t border-[#E8E8E8]">
-                                <p className="text-[10px] text-[#BBBFCA] leading-tight">
-                                    Dica: Use atalhos do teclado para deletar (Del/Backspace) ou duplicar elementos no editor.
-                                </p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
+    const PInput = ({ label, value, onChange, type = "text", placeholder = "", min, max }: any) => (
+        <div className="flex flex-col gap-1 w-full">
+            {label && <label className="text-[10px] text-[#888888]">{label}</label>}
+            <input
+                type={type}
+                value={value ?? ''}
+                onChange={(e) => onChange(type === 'number' || type === 'range' ? Number(e.target.value) : e.target.value)}
+                placeholder={placeholder}
+                min={min} max={max}
+                className="w-full bg-white border border-[#E5E5E5] hover:border-[#BBBFCA] focus:border-[#0D99FF] focus:ring-1 focus:ring-[#0D99FF] rounded p-1.5 text-[11px] text-[#333333] outline-none transition-colors"
+            />
         </div>
-    ) : (
-        <div className="p-6 text-center text-[#BBBFCA] text-xs italic">
-            Select a component to adjust its properties.
+    );
+
+    const PSelect = ({ label, value, onChange, options }: any) => (
+        <div className="flex flex-col gap-1 w-full">
+            {label && <label className="text-[10px] text-[#888888]">{label}</label>}
+            <select
+                value={value ?? ''}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full bg-white border border-[#E5E5E5] hover:border-[#BBBFCA] focus:border-[#0D99FF] focus:ring-1 focus:ring-[#0D99FF] rounded p-1.5 text-[11px] text-[#333333] outline-none transition-colors appearance-none"
+            >
+                {options.map((opt: any) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+            </select>
+        </div>
+    );
+
+    return (
+        <div className="bg-white border-l border-[#E5E5E5] flex flex-col w-64 shrink-0 overflow-y-auto z-10">
+            {/* Header section (Component Type & Actions) */}
+            <div className="flex items-center justify-between p-3 border-b border-[#E5E5E5] sticky top-0 bg-white z-10">
+                <div className="flex items-center gap-2">
+                    <Box size={14} className="text-[#888888]" />
+                    <h3 className="text-[11px] font-semibold text-[#333333] tracking-wide select-none">{selected.name}</h3>
+                </div>
+                <div className="flex gap-1">
+                    {selected.name === 'Container' && (
+                        <button
+                            onClick={() => setIsSavingBlock(!isSavingBlock)}
+                            className="p-1 hover:bg-[#F5F5F5] text-[#888888] hover:text-[#333333] rounded transition-colors"
+                            title="Save as Component"
+                        >
+                            <BookmarkPlus size={14} />
+                        </button>
+                    )}
+                    {selected.isDeletable && (
+                        <button
+                            onClick={() => actions.delete(selected.id)}
+                            className="p-1 hover:bg-red-50 text-[#888888] hover:text-red-500 rounded transition-colors"
+                            title="Delete Layer"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Template Save Area */}
+            {isSavingBlock && selected.name === 'Container' && (
+                <div className="p-3 bg-indigo-50/50 border-b border-[#E5E5E5] flex flex-col gap-2">
+                    <label className="text-[10px] font-semibold text-indigo-600">Save Component</label>
+                    <div className="flex gap-1.5">
+                        <input
+                            autoFocus
+                            type="text"
+                            value={blockName}
+                            onChange={(e) => setBlockName(e.target.value)}
+                            placeholder="Hero Card"
+                            className="flex-1 bg-white border border-[#E5E5E5] focus:border-indigo-500 rounded p-1.5 text-[11px] outline-none"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveBlock();
+                                if (e.key === 'Escape') setIsSavingBlock(false);
+                            }}
+                        />
+                        <button
+                            onClick={handleSaveBlock}
+                            disabled={!blockName.trim()}
+                            className="px-2.5 bg-indigo-600 text-white rounded text-[11px] font-medium hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                            Save
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* --- PROPERTIES ACCORDIONS --- */}
+
+            {/* CONTENT (For Text/Image) */}
+            {selected.name === 'Text' && (
+                <Section title="Text Content">
+                    <textarea
+                        value={selected.props.text}
+                        onChange={(e) => setProp('text', e.target.value)}
+                        className="w-full bg-white border border-[#E5E5E5] focus:border-[#0D99FF] rounded p-2 text-[11px] font-mono outline-none min-h-[100px] resize-y"
+                        placeholder="Content..."
+                    />
+                </Section>
+            )}
+
+            {selected.name === 'Image' && (
+                <Section title="Image Source">
+                    <PInput value={selected.props.src} onChange={(v: string) => setProp('src', v)} placeholder="https://..." />
+                </Section>
+            )}
+
+            {/* AUTO LAYOUT (For Containers) */}
+            {selected.name === 'Container' && (
+                <Section title="Auto Layout">
+                    <div className="grid grid-cols-2 gap-2">
+                        <PSelect
+                            label="Direction"
+                            value={selected.props.flexDirection || "column"}
+                            onChange={(v: string) => setProp('flexDirection', v)}
+                            options={[
+                                { label: "↓ Vertical", value: "column" },
+                                { label: "→ Horizontal", value: "row" }
+                            ]}
+                        />
+                        <PSelect
+                            label="Height Mode"
+                            value={selected.props.height === 'auto' ? 'auto' : selected.props.height === '100%' ? 'fill' : 'fixed'}
+                            onChange={(v: string) => {
+                                if (v === 'auto') setProp('height', 'auto');
+                                else if (v === 'fill') setProp('height', '100%');
+                                else setProp('height', '300px');
+                            }}
+                            options={[
+                                { label: "Hug contents", value: "auto" },
+                                { label: "Fill container", value: "fill" },
+                                { label: "Fixed", value: "fixed" }
+                            ]}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <PSelect
+                            label="Align"
+                            value={selected.props.alignItems || "flex-start"}
+                            onChange={(v: string) => setProp('alignItems', v)}
+                            options={[
+                                { label: "Start", value: "flex-start" },
+                                { label: "Center", value: "center" },
+                                { label: "End", value: "flex-end" },
+                                { label: "Stretch", value: "stretch" }
+                            ]}
+                        />
+                        <PSelect
+                            label="Justify"
+                            value={selected.props.justifyContent || "flex-start"}
+                            onChange={(v: string) => setProp('justifyContent', v)}
+                            options={[
+                                { label: "Start", value: "flex-start" },
+                                { label: "Center", value: "center" },
+                                { label: "End", value: "flex-end" },
+                                { label: "Space Btwn", value: "space-between" }
+                            ]}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <PInput label="Gap" type="number" value={selected.props.gap || 0} onChange={(v: number) => setProp('gap', v)} />
+                        <PInput label="Padding" type="number" value={selected.props.padding || 0} onChange={(v: number) => setProp('padding', v)} />
+                    </div>
+                </Section>
+            )}
+
+            {/* TYPOGRAPHY */}
+            {(selected.name === 'Title' || selected.name === 'Text') && (
+                <Section title="Typography">
+                    <div className="grid grid-cols-2 gap-2 items-end">
+                        <PInput label="Size" type="number" value={selected.props.fontSize || 16} onChange={(v: number) => setProp('fontSize', v)} />
+
+                        <div className="flex border border-[#E5E5E5] rounded overflow-hidden">
+                            <button
+                                onClick={() => setProp('textAlign', 'left')}
+                                className={`flex-1 p-1.5 flex justify-center items-center ${selected.props.textAlign === 'left' ? 'bg-[#E5E5E5] text-[#333333]' : 'bg-white text-[#888888] hover:bg-gray-50'}`}
+                            >
+                                <AlignLeft size={14} />
+                            </button>
+                            <button
+                                onClick={() => setProp('textAlign', 'center')}
+                                className={`flex-1 p-1.5 flex justify-center items-center ${selected.props.textAlign === 'center' ? 'bg-[#E5E5E5] text-[#333333]' : 'bg-white text-[#888888] hover:bg-gray-50'}`}
+                            >
+                                <AlignCenter size={14} />
+                            </button>
+                            <button
+                                onClick={() => setProp('textAlign', 'right')}
+                                className={`flex-1 p-1.5 flex justify-center items-center ${selected.props.textAlign === 'right' ? 'bg-[#E5E5E5] text-[#333333]' : 'bg-white text-[#888888] hover:bg-gray-50'}`}
+                            >
+                                <AlignRight size={14} />
+                            </button>
+                        </div>
+                    </div>
+                </Section>
+            )}
+
+            {/* FILL & STROKE */}
+            {selected.name === 'Container' && (
+                <>
+                    <Section title="Fill">
+                        <div className="flex items-center gap-2">
+                            <div className="relative w-6 h-6 rounded border border-[#E5E5E5] overflow-hidden shrink-0 shadow-sm cursor-pointer">
+                                <input
+                                    type="color"
+                                    value={selected.props.background === 'transparent' ? '#ffffff' : (selected.props.background && selected.props.background.startsWith('#') ? selected.props.background : '#ffffff')}
+                                    onChange={(e) => setProp('background', e.target.value)}
+                                    className="absolute inset-[-10px] w-12 h-12 cursor-pointer"
+                                />
+                            </div>
+                            <input
+                                type="text"
+                                value={selected.props.background || 'transparent'}
+                                onChange={(e) => setProp('background', e.target.value)}
+                                className="flex-1 bg-white border border-[#E5E5E5] focus:border-[#0D99FF] rounded p-1.5 text-[11px] font-mono outline-none"
+                            />
+                        </div>
+                    </Section>
+
+                    <Section title="Stroke & Corners" defaultOpen={false}>
+                        <div className="grid grid-cols-2 gap-2">
+                            <PInput label="Radius" type="number" value={selected.props.borderRadius || 0} onChange={(v: number) => setProp('borderRadius', v)} />
+                            <PInput label="Border W" type="number" value={selected.props.borderWidth || 0} onChange={(v: number) => setProp('borderWidth', v)} />
+                        </div>
+                    </Section>
+
+                    <Section title="Effects" defaultOpen={false}>
+                        <PInput label={`Background Blur: ${selected.props.backdropBlur || 0}px`} type="range" min={0} max={40} value={selected.props.backdropBlur || 0} onChange={(v: number) => setProp('backdropBlur', v)} />
+
+                        <div className="pt-2 border-t border-[#E5E5E5] mt-2">
+                            <label className="text-[10px] text-[#888888] block mb-1">Image Overlay</label>
+                            <input
+                                type="text"
+                                value={selected.props.backgroundImage || ''}
+                                onChange={(e) => setProp('backgroundImage', e.target.value)}
+                                placeholder="Image URL..."
+                                className="w-full bg-white border border-[#E5E5E5] focus:border-[#0D99FF] rounded p-1.5 text-[11px] outline-none mb-2"
+                            />
+                            <PInput label={`Overlay Opacity: ${selected.props.backgroundOpacity || 0}%`} type="range" min={0} max={100} value={selected.props.backgroundOpacity || 0} onChange={(v: number) => setProp('backgroundOpacity', v)} />
+                        </div>
+                    </Section>
+                </>
+            )}
+
+            {/* Quick Presets for Demo */}
+            {selected.name === 'Container' && (
+                <Section title="Presets" defaultOpen={false}>
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <button onClick={() => {
+                            setProp('borderRadius', 16);
+                            setProp('borderWidth', 0);
+                            setProp('background', '#ffffff');
+                            setProp('boxShadow', '0 10px 25px -5px rgba(0, 0, 0, 0.1)');
+                        }} className="p-1.5 bg-[#F5F5F5] hover:bg-[#E5E5E5] text-[#333333] rounded text-[10px] font-medium transition-colors">Surface</button>
+
+                        <button onClick={() => {
+                            setProp('borderRadius', 16);
+                            setProp('background', 'rgba(255,255,255,0.4)');
+                            setProp('borderWidth', 1);
+                            setProp('borderColor', 'rgba(255,255,255,0.3)');
+                            setProp('backdropBlur', 10);
+                        }} className="p-1.5 bg-[#F5F5F5] hover:bg-[#E5E5E5] text-[#333333] rounded text-[10px] font-medium transition-colors">Glass</button>
+                    </div>
+                </Section>
+            )}
+
         </div>
     );
 };

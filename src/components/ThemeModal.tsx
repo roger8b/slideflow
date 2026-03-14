@@ -18,62 +18,64 @@ export const ThemeModal: React.FC<ThemeModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-[#F4F4F2] p-8 rounded-2xl shadow-2xl w-full max-w-md border border-[#BBBFCA]">
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-[#495464] text-white rounded-lg">
-                            <Palette size={20} />
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+            <div className="bg-white p-6 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-md border border-[#E5E5E5] animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-5">
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-[#333333] text-white rounded">
+                            <Palette size={14} />
                         </div>
-                        <h2 className="text-2xl font-black text-[#495464] uppercase tracking-tighter">Global Themes</h2>
+                        <h2 className="text-[13px] font-bold text-[#333333] tracking-tight">Global Themes</h2>
                     </div>
-                    <button onClick={onClose} className="text-[#495464] hover:bg-[#E8E8E8] p-2 rounded-full transition-colors">
-                        <X size={24} />
+                    <button onClick={onClose} className="text-[#888888] hover:text-[#333333] hover:bg-gray-100 p-1 rounded-md transition-all">
+                        <X size={18} />
                     </button>
                 </div>
 
                 <div className="space-y-4">
-                    <p className="text-xs text-[#BBBFCA] font-bold uppercase tracking-widest mb-4">
+                    <p className="text-[10px] text-[#888888] font-medium uppercase tracking-widest leading-relaxed">
                         Select a theme to apply to all slides. This will overwrite individual styles.
                     </p>
 
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-2 gap-2">
                         {(Object.keys(THEMES) as ThemeType[]).map((t) => (
                             <button
                                 key={t}
                                 onClick={() => onApply(t)}
                                 className={cn(
-                                    "flex items-center justify-between p-4 rounded-xl border-2 transition-all text-left group",
+                                    "flex flex-col gap-2 p-3 rounded-lg border transition-all text-left group relative",
                                     currentTheme === t
-                                        ? "border-[#495464] bg-white shadow-md"
-                                        : "border-[#BBBFCA] bg-white/50 hover:border-[#495464] hover:bg-white"
+                                        ? "border-[#0D99FF] bg-blue-50/30"
+                                        : "border-[#E5E5E5] bg-white hover:border-[#0D99FF] hover:bg-gray-50"
                                 )}
                             >
-                                <div className="flex items-center gap-4">
-                                    <div className="flex -space-x-2">
-                                        <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: THEMES[t].colors.background }} />
-                                        <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: THEMES[t].colors.title }} />
-                                        <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: THEMES[t].colors.accent }} />
+                                <div className="flex items-center justify-between w-full">
+                                    <div className="flex -space-x-1.5">
+                                        <div className="w-5 h-5 rounded-full border border-white shadow-sm" style={{ backgroundColor: THEMES[t].colors.background }} />
+                                        <div className="w-5 h-5 rounded-full border border-white shadow-sm" style={{ backgroundColor: THEMES[t].colors.title }} />
+                                        <div className="w-5 h-5 rounded-full border border-white shadow-sm" style={{ backgroundColor: THEMES[t].colors.accent }} />
                                     </div>
-                                    <div>
-                                        <span className="block text-sm font-black uppercase tracking-tighter text-[#495464]">{THEMES[t].name}</span>
-                                        <span className="text-[10px] text-[#BBBFCA] font-bold uppercase">{THEMES[t].typography.fontFamily} • {THEMES[t].typography.titleSize}px</span>
-                                    </div>
+                                    {currentTheme === t && (
+                                        <div className="bg-[#0D99FF] text-white p-0.5 rounded-full">
+                                            <Check size={10} />
+                                        </div>
+                                    )}
                                 </div>
-                                {currentTheme === t && (
-                                    <div className="bg-[#495464] text-white p-1 rounded-full">
-                                        <Check size={14} />
-                                    </div>
-                                )}
+                                <div>
+                                    <span className="block text-[11px] font-bold text-[#333333] tracking-tight">{THEMES[t].name}</span>
+                                    <span className="text-[9px] text-[#888888] font-medium uppercase tracking-tight truncate block">
+                                        {THEMES[t].typography.fontFamily.split(',')[0]}
+                                    </span>
+                                </div>
                             </button>
                         ))}
                     </div>
                 </div>
 
-                <div className="mt-8">
+                <div className="mt-6">
                     <button
                         onClick={onClose}
-                        className="w-full py-3 rounded-xl border-2 border-[#BBBFCA] text-[#BBBFCA] hover:text-[#495464] hover:border-[#495464] transition-all font-black uppercase tracking-widest text-sm"
+                        className="w-full py-1.5 rounded-md border border-[#E5E5E5] text-[#333333] hover:bg-gray-50 transition-colors font-medium text-[11px]"
                     >
                         Close
                     </button>

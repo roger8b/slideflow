@@ -296,7 +296,7 @@ const SlideFlowContent = () => {
 
   return (
     <div
-      className="w-full h-screen bg-[#F4F4F2] flex flex-col font-sans text-[#495464]"
+      className="w-full h-screen bg-[#E5E5E5] flex flex-col font-sans text-[#333333]"
       style={{ '--slide-font-size': `${metadata.baseFontSize}px` } as React.CSSProperties}
       onMouseMove={(e) => {
         if (mode === 'player') {
@@ -311,50 +311,50 @@ const SlideFlowContent = () => {
     >
       {/* Header / Toolbar */}
       {mode === 'canvas' && (
-        <header className="h-16 bg-white border-b border-[#BBBFCA] flex items-center justify-between px-6 shadow-sm z-10">
+        <header className="h-12 bg-white border-b border-[#E5E5E5] flex items-center justify-between px-4 z-10 transition-all">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#495464] rounded-xl flex items-center justify-center text-white">
-              <Monitor size={24} />
+            <div className="w-8 h-8 bg-[#333333] rounded-lg flex items-center justify-center text-white">
+              <Monitor size={16} />
             </div>
-            <div>
-              <h1 className="font-bold text-lg leading-tight">{metadata.title}</h1>
-              <p className="text-xs text-[#BBBFCA] font-medium uppercase tracking-wider">by {metadata.author}</p>
+            <div className="flex flex-col">
+              <h1 className="font-bold text-[12px] leading-tight text-[#333333] tracking-tight">{metadata.title}</h1>
+              <p className="text-[10px] text-[#888888] font-medium uppercase tracking-widest">by {metadata.author}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={addNode}
-              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] hover:bg-[#BBBFCA] rounded-lg transition-colors font-semibold text-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-gray-100 text-[#333333] rounded-md transition-colors text-[11px] font-medium"
             >
-              <Plus size={18} /> Add Slide
+              <Plus size={14} /> Add Slide
             </button>
-            <div className="w-px h-6 bg-[#BBBFCA] mx-2" />
+            <div className="w-px h-6 bg-[#E5E5E5] mx-1" />
             <button
               onClick={() => setIsThemeModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-[#E8E8E8] hover:border-[#495464] text-[#495464] rounded-lg transition-all font-bold text-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-gray-100 text-[#333333] rounded-md transition-colors text-[11px] font-medium"
               title="Change Global Style"
             >
-              <Palette size={18} /> Design
+              <Palette size={14} /> Design
             </button>
-            <div className="w-px h-6 bg-[#BBBFCA] mx-1" />
+            <div className="w-px h-6 bg-[#E5E5E5] mx-0.5" />
             <button
               onClick={() => setIsMetadataOpen(true)}
-              className="p-2 hover:bg-[#E8E8E8] rounded-lg transition-colors text-[#495464]"
+              className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-[#333333]"
               title="Save Presentation"
             >
-              <Save size={20} />
+              <Save size={16} />
             </button>
-            <label className="p-2 hover:bg-[#E8E8E8] rounded-lg transition-colors text-[#495464] cursor-pointer" title="Load Presentation">
-              <Upload size={20} />
+            <label className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-[#333333] cursor-pointer" title="Load Presentation">
+              <Upload size={16} />
               <input type="file" accept=".json" onChange={loadPresentation} className="hidden" />
             </label>
-            <div className="w-px h-6 bg-[#BBBFCA] mx-2" />
+            <div className="w-px h-6 bg-[#E5E5E5] mx-1" />
             <button
               onClick={startPresentation}
-              className="flex items-center gap-2 px-6 py-2 bg-[#495464] text-white hover:bg-[#3a4350] rounded-lg transition-all font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+              className="flex items-center gap-2 px-4 py-1.5 bg-[#0D99FF] text-white hover:bg-blue-600 rounded-md transition-all font-semibold text-[11px] shadow-sm active:scale-95"
             >
-              <Play size={18} fill="currentColor" /> Present
+              <Play size={14} fill="currentColor" /> Present
             </button>
           </div>
         </header>
@@ -378,17 +378,18 @@ const SlideFlowContent = () => {
           elementsSelectable={mode === 'canvas'}
           panOnDrag={true}
           selectionOnDrag={mode === 'canvas'}
-          className="bg-[#F4F4F2]"
+          className="bg-[#E5E5E5]"
           minZoom={0.1}
           maxZoom={10}
         >
           <Background color="#BBBFCA" gap={20} />
           {mode === 'canvas' && (
             <>
-              <Controls className="bg-white border-[#BBBFCA] shadow-md" />
+              <Controls className="bg-white border-[#E5E5E5] shadow-sm rounded-lg overflow-hidden" />
               <MiniMap
-                nodeColor={() => '#BBBFCA'}
-                className="bg-white border-[#BBBFCA] shadow-md"
+                nodeColor={() => '#E5E5E5'}
+                maskColor="rgba(229, 229, 229, 0.6)"
+                className="bg-white border-[#E5E5E5] shadow-sm rounded-lg overflow-hidden"
               />
             </>
           )}
@@ -530,7 +531,7 @@ const SlideFlowContent = () => {
 
       <ThemeModal
         isOpen={isThemeModalOpen}
-        onClose={() => setIsThemeModalOpen(true)} // Keep open or just for visual
+        onClose={() => setIsThemeModalOpen(false)}
         onApply={(theme) => {
           applyThemeToNodes(theme);
           setMetadata(prev => ({ ...prev, theme }));

@@ -26,63 +26,63 @@ export const MetadataModal: React.FC<MetadataModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-[#F4F4F2] p-8 rounded-2xl shadow-2xl w-full max-w-md border border-[#BBBFCA]">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#495464] text-white rounded-lg">
-              <Info size={20} />
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+      <div className="bg-white p-6 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] w-full max-w-sm border border-[#E5E5E5] animate-in zoom-in-95 duration-200">
+        <div className="flex justify-between items-center mb-5">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-[#333333] text-white rounded">
+              <Info size={14} />
             </div>
-            <h2 className="text-2xl font-black text-[#495464] uppercase tracking-tighter">Presentation Info</h2>
+            <h2 className="text-[13px] font-bold text-[#333333] tracking-tight">Presentation Info</h2>
           </div>
-          <button onClick={onClose} className="text-[#495464] hover:bg-[#E8E8E8] p-2 rounded-full transition-colors">
-            <X size={24} />
+          <button onClick={onClose} className="text-[#888888] hover:text-[#333333] hover:bg-gray-100 p-1 rounded-md transition-all">
+            <X size={18} />
           </button>
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-4">
           <div>
-            <label className="block text-[10px] font-black text-[#BBBFCA] uppercase tracking-widest mb-1.5">Presentation Title</label>
+            <label className="block text-[10px] font-medium text-[#888888] uppercase tracking-widest mb-1">Presentation Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-[#BBBFCA] bg-white focus:outline-none focus:ring-2 focus:ring-[#495464] text-[#495464] font-medium"
+              className="w-full px-3 py-2 rounded-md border border-[#E5E5E5] bg-white focus:outline-none focus:ring-1 focus:ring-[#0D99FF] text-[12px] text-[#333333] font-medium placeholder:text-gray-300"
               placeholder="My Awesome Presentation"
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black text-[#BBBFCA] uppercase tracking-widest mb-1.5">Author</label>
+            <label className="block text-[10px] font-medium text-[#888888] uppercase tracking-widest mb-1">Author</label>
             <input
               type="text"
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-[#BBBFCA] bg-white focus:outline-none focus:ring-2 focus:ring-[#495464] text-[#495464] font-medium"
+              className="w-full px-3 py-2 rounded-md border border-[#E5E5E5] bg-white focus:outline-none focus:ring-1 focus:ring-[#0D99FF] text-[12px] text-[#333333] font-medium placeholder:text-gray-300"
               placeholder="Your Name"
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black text-[#BBBFCA] uppercase tracking-widest mb-1.5">Base Font Size (px)</label>
+            <label className="block text-[10px] font-medium text-[#888888] uppercase tracking-widest mb-1">Base Font Size (px)</label>
             <input
               type="number"
               value={baseFontSize}
               onChange={(e) => setBaseFontSize(parseInt(e.target.value))}
-              className="w-full px-4 py-2.5 rounded-xl border border-[#BBBFCA] bg-white focus:outline-none focus:ring-2 focus:ring-[#495464] text-[#495464] font-medium"
+              className="w-full px-3 py-2 rounded-md border border-[#E5E5E5] bg-white focus:outline-none focus:ring-1 focus:ring-[#0D99FF] text-[12px] text-[#333333] font-medium"
             />
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-3">
+        <div className="mt-6 flex items-center gap-2">
           <button
             onClick={() => onSave(title, author, baseFontSize)}
-            className="w-full py-3 rounded-xl bg-[#495464] text-white hover:bg-[#3a4350] transition-all font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl active:scale-95"
+            className="flex-1 py-1.5 rounded-md bg-[#0D99FF] text-white hover:bg-blue-600 transition-all font-semibold text-[11px] flex items-center justify-center gap-2 shadow-sm active:scale-95"
           >
-            <Save size={18} />
+            <Save size={14} />
             Save Presentation
           </button>
           <button
             onClick={onClose}
-            className="w-full py-2 rounded-xl text-[#BBBFCA] hover:text-[#495464] transition-colors font-bold text-sm uppercase tracking-widest"
+            className="px-4 py-1.5 rounded-md border border-[#E5E5E5] text-[#333333] hover:bg-gray-50 transition-colors font-medium text-[11px]"
           >
             Cancel
           </button>

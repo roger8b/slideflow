@@ -7,7 +7,8 @@ import { Image } from './selectors/Image';
 import { SidebarPalette } from './SidebarPalette';
 import { SettingsPanel } from './SettingsPanel';
 import { KeyboardShortcuts } from './KeyboardShortcuts';
-import { X, Save, Layers } from 'lucide-react';
+import { FloatingToolbar } from './FloatingToolbar';
+import { X, Save, Box } from 'lucide-react';
 import { SlideNodeData } from '../../types';
 
 interface EditorContainerProps {
@@ -29,7 +30,7 @@ export const EditorContainer = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] bg-[#F4F4F2] flex flex-col animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] bg-white flex flex-col animate-in fade-in duration-300">
             <Editor
                 resolver={{
                     Container,
@@ -39,39 +40,42 @@ export const EditorContainer = ({
                 }}
             >
                 <KeyboardShortcuts />
-                {/* Editor Header */}
-                <header className="h-16 bg-white border-b border-[#BBBFCA] flex items-center justify-between px-6 shadow-sm">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-[#495464] rounded-xl flex items-center justify-center text-white">
-                            <Layers size={20} />
+
+                {/* Editor Header - Figma Style Slim */}
+                <header className="h-12 bg-white border-b border-[#E5E5E5] flex items-center justify-between px-4 z-20">
+                    <div className="flex items-center gap-3">
+                        <div className="text-[#333333] flex items-center justify-center">
+                            <Box size={16} strokeWidth={2} className="text-[#0D99FF]" />
                         </div>
-                        <div>
-                            <h2 className="font-bold text-lg leading-tight">Layout Simulator</h2>
-                            <p className="text-[10px] text-[#BBBFCA] font-bold uppercase tracking-wider">Editing: {nodeLabel || 'Untitled Slide'}</p>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[12px] font-semibold text-[#333333] tracking-wide">Slideflow Editor</span>
+                            <span className="text-[#E5E5E5]">/</span>
+                            <span className="text-[11px] text-[#888888]">{nodeLabel || 'Untitled Slide'}</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={onClose}
-                            className="flex items-center gap-2 px-4 py-2 hover:bg-[#E8E8E8] text-[#495464] rounded-lg transition-colors font-bold text-sm"
+                            className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-gray-100 text-[#333333] rounded-md transition-colors text-[11px] font-medium"
                         >
-                            <X size={18} /> Discard changes
+                            <X size={14} /> Discard
                         </button>
                         <SaveButton onSave={onSave} />
                     </div>
                 </header>
 
-                <div className="flex-1 flex overflow-hidden">
-                    {/* Left Sidebar: Component Palette & AI */}
-                    <div className="w-80 flex flex-col bg-white border-r border-[#BBBFCA] shadow-lg z-10">
-                        <SidebarPalette />
-                    </div>
+                <div className="flex-1 flex overflow-hidden relative">
+                    {/* Left Navigation: Layers & Assets */}
+                    <SidebarPalette />
 
                     {/* Main Canvas Area */}
-                    <div className="flex-1 overflow-y-auto p-12 bg-[#E8E8E8] flex justify-center items-center relative">
+                    <div className="flex-1 overflow-auto bg-[#E5E5E5] relative flex justify-center items-center">
+                        <FloatingToolbar />
+
+                        {/* The "Artboard" */}
                         <div
-                            className="bg-white shadow-2xl border border-[#BBBFCA] relative flex flex-col overflow-hidden"
+                            className="bg-white shadow-sm ring-1 ring-[#BBBFCA] relative flex flex-col overflow-hidden my-16 mx-16"
                             style={{
                                 width: '960px',
                                 height: '540px',
@@ -86,10 +90,8 @@ export const EditorContainer = ({
                         </div>
                     </div>
 
-                    {/* Right Sidebar: Contextual Settings */}
-                    <div className="w-80 flex flex-col bg-white border-l border-[#BBBFCA] shadow-lg z-10">
-                        <SettingsPanel />
-                    </div>
+                    {/* Right Property Inspector: Contextual Settings */}
+                    <SettingsPanel />
                 </div>
             </Editor>
         </div>
@@ -105,9 +107,9 @@ const SaveButton = ({ onSave }: { onSave: (layout: string) => void }) => {
                 const json = query.serialize();
                 onSave(json);
             }}
-            className="flex items-center gap-2 px-6 py-2 bg-[#495464] text-white hover:bg-[#3a4350] rounded-lg transition-all font-bold shadow-md hover:shadow-lg transform active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0D99FF] text-white hover:bg-blue-600 rounded-md transition-colors text-[11px] font-medium shadow-sm"
         >
-            <Save size={18} /> Apply modifications
+            <Save size={14} /> Save
         </button>
     );
 };

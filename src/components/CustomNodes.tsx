@@ -27,7 +27,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<SlideNodeData>) =>
         className="w-2 h-6 rounded-none bg-[#0D99FF] border-none -translate-x-1"
       />
 
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 flex flex-col overflow-hidden relative">
         {data.layout ? (
           <Editor
             key={data.layout}

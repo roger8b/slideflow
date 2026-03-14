@@ -19,6 +19,34 @@ export interface PresentationMetadata {
   baseFontSize: number;
   theme?: string;
   useThemeDefaults?: boolean;
+  brand?: {
+    logoUrl?: string;
+    colors: {
+      primary: string;
+      secondary: string;
+      background: string;
+      surface: string;
+      text: string;
+    };
+    fonts: {
+      title: string;
+      header: string;
+      subheader: string;
+      body: string;
+    };
+    fontSizes: {
+      title: number;
+      header: number;
+      subheader: number;
+      body: number;
+    };
+    fontWeights: {
+      title: string;
+      header: string;
+      subheader: string;
+      body: string;
+    };
+  };
 }
 
 export interface PresentationFile {

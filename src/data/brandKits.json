@@ -1,0 +1,122 @@
+[
+  {
+    "id": "minimalist-tech",
+    "name": "Minimalist Tech",
+    "logoUrl": "",
+    "colors": {
+      "primary": "#0D99FF",
+      "secondary": "#495464",
+      "background": "#FFFFFF",
+      "surface": "#F8F9FA",
+      "text": "#333333"
+    },
+    "fonts": {
+      "title": "Inter, sans-serif",
+      "header": "Inter, sans-serif",
+      "subheader": "Inter, sans-serif",
+      "body": "Inter, sans-serif"
+    },
+    "fontSizes": {
+      "title": 48,
+      "header": 32,
+      "subheader": 24,
+      "body": 18
+    },
+    "fontWeights": {
+      "title": "700",
+      "header": "600",
+      "subheader": "500",
+      "body": "400"
+    }
+  },
+  {
+    "id": "elegant-serif",
+    "name": "Elegant Serif",
+    "logoUrl": "",
+    "colors": {
+      "primary": "#3E2723",
+      "secondary": "#5D4037",
+      "background": "#FFF9FB",
+      "surface": "#FCE4EC",
+      "text": "#1A1412"
+    },
+    "fonts": {
+      "title": "'EB Garamond', serif",
+      "header": "'EB Garamond', serif",
+      "subheader": "Inter, sans-serif",
+      "body": "Inter, sans-serif"
+    },
+    "fontSizes": {
+      "title": 56,
+      "header": 36,
+      "subheader": 22,
+      "body": 16
+    },
+    "fontWeights": {
+      "title": "800",
+      "header": "700",
+      "subheader": "500",
+      "body": "400"
+    }
+  },
+  {
+    "id": "vibrant-modern",
+    "name": "Vibrant Modern",
+    "logoUrl": "",
+    "colors": {
+      "primary": "#E91E63",
+      "secondary": "#9C27B0",
+      "background": "#0F0110",
+      "surface": "#1E0527",
+      "text": "#FFFFFF"
+    },
+    "fonts": {
+      "title": "Syne, sans-serif",
+      "header": "'Space Grotesk', sans-serif",
+      "subheader": "Outfit, sans-serif",
+      "body": "Inter, sans-serif"
+    },
+    "fontSizes": {
+      "title": 64,
+      "header": 40,
+      "subheader": 28,
+      "body": 18
+    },
+    "fontWeights": {
+      "title": "800",
+      "header": "700",
+      "subheader": "600",
+      "body": "400"
+    }
+  },
+  {
+    "id": "corporate-clean",
+    "name": "Corporate Clean",
+    "logoUrl": "",
+    "colors": {
+      "primary": "#1A237E",
+      "secondary": "#3949AB",
+      "background": "#F5F5F5",
+      "surface": "#FFFFFF",
+      "text": "#212121"
+    },
+    "fonts": {
+      "title": "Outfit, sans-serif",
+      "header": "Outfit, sans-serif",
+      "subheader": "Inter, sans-serif",
+      "body": "Inter, sans-serif"
+    },
+    "fontSizes": {
+      "title": 42,
+      "header": 30,
+      "subheader": 20,
+      "body": 16
+    },
+    "fontWeights": {
+      "title": "700",
+      "header": "600",
+      "subheader": "500",
+      "body": "400"
+    }
+  }
+]

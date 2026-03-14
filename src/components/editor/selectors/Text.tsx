@@ -12,9 +12,10 @@ export interface TextProps {
     color?: string;
     textAlign?: 'left' | 'center' | 'right' | 'justify';
     fontFamily?: string;
+    background?: string;
 }
 
-export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#495464', textAlign = 'left', fontFamily = 'inherit' }: TextProps) => {
+export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(--brand-text)', textAlign = 'left', fontFamily = 'var(--brand-font-body)', background = 'transparent' }: TextProps) => {
     const { connectors: { connect, drag }, actions: { setProp }, selected } = useNode((state: any) => ({
         selected: state.events.selected,
     }));
@@ -40,6 +41,7 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#4954
                 enabled && "hover:border-blue-300 hover:bg-[#F4F4F2] cursor-move",
                 "w-full"
             )}
+            style={{ backgroundColor: background }}
         >
             {enabled && selected && (
                 <div className="absolute -left-6 top-1/2 -translate-y-1/2 p-1 text-blue-500 bg-white shadow-sm rounded-l-md border border-blue-200 z-10">
@@ -59,7 +61,7 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#4954
                         className="w-full min-h-[100px] bg-transparent outline-none resize-none px-1 py-1 border-none focus:ring-0"
                         style={{
                             fontSize: `${fontSize}px`,
-                            color,
+                            color: color,
                             textAlign,
                             lineHeight: '1.5',
                             fontFamily: isEditing ? 'monospace' : fontFamily
@@ -67,14 +69,15 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = '#4954
                     />
                 ) : (
                     <div
-                        className="markdown-content prose max-w-none"
+                        className="markdown-content text-inherit"
                         style={{
                             fontSize: `${fontSize}px`,
-                            color,
+                            color: color,
                             textAlign,
                             lineHeight: '1.5',
-                            fontFamily,
+                            fontFamily: fontFamily,
                             padding: '4px',
+                            minHeight: '1em'
                         }}
                     >
                         <ReactMarkdown
@@ -97,9 +100,10 @@ Text.craft = {
     props: {
         text: 'Your text here...',
         fontSize: 18,
-        color: '#495464',
+        color: 'var(--brand-text)',
         textAlign: 'left',
-        fontFamily: 'inherit',
+        fontFamily: 'var(--brand-font-body)',
+        background: 'transparent',
     },
     displayName: 'Text',
     rules: {

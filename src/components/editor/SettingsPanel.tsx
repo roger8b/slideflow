@@ -23,7 +23,150 @@ const Section = ({ title, children, defaultOpen = true }: { title: string, child
     );
 };
 
-export const SettingsPanel = () => {
+const PInput = ({ label, value, onChange, type = "text", placeholder = "", min, max }: any) => (
+    <div className="flex flex-col gap-1 w-full">
+        {label && <label className="text-[10px] text-[#888888]">{label}</label>}
+        <input
+            type={type}
+            value={value ?? ''}
+            onChange={(e) => onChange(type === 'number' || type === 'range' ? Number(e.target.value) : e.target.value)}
+            placeholder={placeholder}
+            min={min} max={max}
+            className="w-full bg-white border border-[#E5E5E5] hover:border-[#BBBFCA] focus:border-[#0D99FF] focus:ring-1 focus:ring-[#0D99FF] rounded p-1.5 text-[11px] text-[#333333] outline-none transition-colors"
+        />
+    </div>
+);
+
+const PSelect = ({ label, value, onChange, options }: any) => (
+    <div className="flex flex-col gap-1 w-full">
+        {label && <label className="text-[10px] text-[#888888]">{label}</label>}
+        <select
+            value={value ?? ''}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full bg-white border border-[#E5E5E5] hover:border-[#BBBFCA] focus:border-[#0D99FF] focus:ring-1 focus:ring-[#0D99FF] rounded p-1.5 text-[11px] text-[#333333] outline-none transition-colors appearance-none"
+        >
+            {options.map((opt: any) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+        </select>
+    </div>
+);
+
+const BrandSwatches = ({ brand, onSelect, activeColor }: { brand: any, onSelect: (color: string) => void, activeColor?: string }) => (
+    <div className="flex flex-wrap gap-1.5 mt-2">
+        {Object.entries(brand.colors).map(([key, value]) => {
+            const varString = `var(--brand-${key})`;
+            return (
+                <button
+                    key={key}
+                    onClick={() => onSelect(varString)}
+                    title={`${key}: ${value}`}
+                    className={`w-6 h-6 rounded-md border shadow-sm transition-all hover:scale-110 active:scale-95 ${activeColor === varString ? 'ring-2 ring-[#0D99FF] ring-offset-1 border-[#0D99FF]' : 'border-black/5'}`}
+                    style={{ backgroundColor: value as string }}
+                />
+            );
+        })}
+    </div>
+);
+
+const BrandFonts = ({ brand, onSelect, activeFont }: { brand: any, onSelect: (font: string) => void, activeFont?: string }) => {
+    const fontOptions = Object.entries(brand.fonts).map(([key, value]) => {
+        return {
+            label: key.charAt(0).toUpperCase() + key.slice(1),
+            value: `var(--brand-font-${key})`
+        };
+    });
+
+    // Add current font if not part of brand setup
+    if (activeFont && !fontOptions.find(o => o.value === activeFont)) {
+        fontOptions.unshift({ label: 'Customizada', value: activeFont });
+    }
+
+    return (
+        <select
+            value={activeFont || ''}
+            onChange={(e) => onSelect(e.target.value)}
+            className="w-full bg-white border border-[#E5E5E5] focus:border-[#0D99FF] rounded p-1.5 text-[11px] outline-none appearance-none font-medium mt-1 truncate"
+        >
+            {fontOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                </option>
+            ))}
+        </select>
+    );
+};
+
+const BrandColorPicker = ({ brand, label, value, onChange }: { brand: any, label?: string, value: string, onChange: (val: string) => void }) => {
+    const getActualHexFromValue = (val: string) => {
+        if (!val) return '#ffffff';
+        if (val.startsWith('#')) return val.substring(0, 7);
+        if (val.startsWith('var(--brand-')) {
+            const key = val.replace('var(--brand-', '').replace(')', '');
+            const hex = brand.colors[key as keyof typeof brand.colors] as string | undefined;
+            return hex && hex.startsWith('#') ? hex.substring(0, 7) : '#ffffff';
+        }
+        return '#ffffff';
+    };
+
+    const colorPickerValue = getActualHexFromValue(value);
+
+    const colorOptions = Object.keys(brand.colors).map((key) => ({
+        value: `var(--brand-${key})`,
+        label: ({
+            primary: 'Primária',
+            secondary: 'Secundária',
+            background: 'Fundo',
+            surface: 'Superfície',
+            text: 'Texto'
+        } as Record<string, string>)[key] || key.charAt(0).toUpperCase() + key.slice(1)
+    }));
+
+    if (!colorOptions.find(o => o.value === value)) {
+        colorOptions.unshift({ value: value, label: value.startsWith('#') ? value.toUpperCase() : value });
+    }
+
+    return (
+        <div className="flex flex-col gap-2 pt-2">
+            {label && <label className="text-[10px] font-bold text-[#888888] uppercase tracking-wider block">{label}</label>}
+            <div className="flex items-center gap-2">
+                <div className="relative w-6 h-6 rounded border border-[#E5E5E5] overflow-hidden shrink-0 shadow-sm cursor-pointer">
+                    <input
+                        type="color"
+                        value={colorPickerValue}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="absolute inset-[-10px] w-12 h-12 cursor-pointer bg-transparent"
+                    />
+                </div>
+                <select
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="flex-1 bg-white border border-[#E5E5E5] hover:border-[#BBBFCA] focus:border-[#0D99FF] rounded p-1.5 text-[11px] outline-none appearance-none font-medium truncate"
+                >
+                    {colorOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>
+                            {opt.value.startsWith('var') ? `◆ ${opt.label}` : `${opt.label}`}
+                        </option>
+                    ))}
+                </select>
+            </div>
+            <div className="pt-2 mt-1">
+                <BrandSwatches
+                    brand={brand}
+                    onSelect={onChange}
+                    activeColor={value}
+                />
+            </div>
+        </div>
+    );
+};
+
+export const SettingsPanel = ({ metadata }: { metadata: any }) => {
+    const brand = metadata?.brand || {
+        colors: { primary: '#0D99FF', secondary: '#495464', background: '#FFFFFF', surface: '#F8F9FA', text: '#333333' },
+        fonts: { title: 'Inter', header: 'Inter', subheader: 'Inter', body: 'Inter' }
+    };
+
     const [isSavingBlock, setIsSavingBlock] = useState(false);
     const [blockName, setBlockName] = useState('');
 
@@ -32,11 +175,13 @@ export const SettingsPanel = () => {
         let selected;
 
         if (currentNodeId) {
+            const node = state.nodes[currentNodeId];
+            const name = node.data.displayName || node.data.name;
             selected = {
                 id: currentNodeId,
-                name: state.nodes[currentNodeId].data.name,
+                name: name,
                 isDeletable: query.node(currentNodeId).isDeletable(),
-                props: state.nodes[currentNodeId].data.props,
+                props: node.data.props,
             };
         }
 
@@ -60,6 +205,7 @@ export const SettingsPanel = () => {
 
     const setProp = (key: string, value: any) => {
         if (selected) {
+            console.log(`Setting prop ${key} to:`, value, 'on node:', selected.id);
             actions.setProp(selected.id, (props) => {
                 props[key] = value;
             });
@@ -73,35 +219,6 @@ export const SettingsPanel = () => {
             </div>
         );
     }
-
-    const PInput = ({ label, value, onChange, type = "text", placeholder = "", min, max }: any) => (
-        <div className="flex flex-col gap-1 w-full">
-            {label && <label className="text-[10px] text-[#888888]">{label}</label>}
-            <input
-                type={type}
-                value={value ?? ''}
-                onChange={(e) => onChange(type === 'number' || type === 'range' ? Number(e.target.value) : e.target.value)}
-                placeholder={placeholder}
-                min={min} max={max}
-                className="w-full bg-white border border-[#E5E5E5] hover:border-[#BBBFCA] focus:border-[#0D99FF] focus:ring-1 focus:ring-[#0D99FF] rounded p-1.5 text-[11px] text-[#333333] outline-none transition-colors"
-            />
-        </div>
-    );
-
-    const PSelect = ({ label, value, onChange, options }: any) => (
-        <div className="flex flex-col gap-1 w-full">
-            {label && <label className="text-[10px] text-[#888888]">{label}</label>}
-            <select
-                value={value ?? ''}
-                onChange={(e) => onChange(e.target.value)}
-                className="w-full bg-white border border-[#E5E5E5] hover:border-[#BBBFCA] focus:border-[#0D99FF] focus:ring-1 focus:ring-[#0D99FF] rounded p-1.5 text-[11px] text-[#333333] outline-none transition-colors appearance-none"
-            >
-                {options.map((opt: any) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-            </select>
-        </div>
-    );
 
     return (
         <div className="bg-white border-l border-[#E5E5E5] flex flex-col w-64 shrink-0 overflow-y-auto z-10">
@@ -269,31 +386,55 @@ export const SettingsPanel = () => {
                             </button>
                         </div>
                     </div>
+
+                    <div className="pt-3 mt-3 border-t border-gray-100">
+                        <label className="text-[10px] font-bold text-[#888888] uppercase tracking-wider mb-2 block">Fontes da Marca</label>
+                        <BrandFonts
+                            brand={brand}
+                            onSelect={(font: string) => setProp('fontFamily', font)}
+                            activeFont={selected.props.fontFamily}
+                        />
+                    </div>
                 </Section>
             )}
 
-            {/* FILL & STROKE */}
-            {selected.name === 'Container' && (
-                <>
-                    <Section title="Fill">
-                        <div className="flex items-center gap-2">
-                            <div className="relative w-6 h-6 rounded border border-[#E5E5E5] overflow-hidden shrink-0 shadow-sm cursor-pointer">
-                                <input
-                                    type="color"
-                                    value={selected.props.background === 'transparent' ? '#ffffff' : (selected.props.background && selected.props.background.startsWith('#') ? selected.props.background : '#ffffff')}
-                                    onChange={(e) => setProp('background', e.target.value)}
-                                    className="absolute inset-[-10px] w-12 h-12 cursor-pointer"
+            {/* FILL & STROKE / COLOR */}
+            {(selected.name === 'Container' || selected.name === 'Title' || selected.name === 'Text') && (
+                <Section title={selected.name === 'Container' ? "Fill" : "Color & Background"}>
+
+                    {selected.name === 'Container' && (
+                        <BrandColorPicker
+                            brand={brand}
+                            value={selected.props.background || 'transparent'}
+                            onChange={(val: string) => setProp('background', val)}
+                        />
+                    )}
+
+                    {(selected.name === 'Title' || selected.name === 'Text') && (
+                        <div className="flex flex-col gap-4">
+                            <BrandColorPicker
+                                brand={brand}
+                                label="Text Color"
+                                value={selected.props.color || '#333333'}
+                                onChange={(val: string) => setProp('color', val)}
+                            />
+
+                            <div className="border-t border-gray-100 pt-1">
+                                <BrandColorPicker
+                                    brand={brand}
+                                    label="Background"
+                                    value={selected.props.background || 'transparent'}
+                                    onChange={(val: string) => setProp('background', val)}
                                 />
                             </div>
-                            <input
-                                type="text"
-                                value={selected.props.background || 'transparent'}
-                                onChange={(e) => setProp('background', e.target.value)}
-                                className="flex-1 bg-white border border-[#E5E5E5] focus:border-[#0D99FF] rounded p-1.5 text-[11px] font-mono outline-none"
-                            />
                         </div>
-                    </Section>
+                    )}
 
+                </Section>
+            )}
+
+            {selected.name === 'Container' && (
+                <>
                     <Section title="Stroke & Corners" defaultOpen={false}>
                         <div className="grid grid-cols-2 gap-2">
                             <PInput label="Radius" type="number" value={selected.props.borderRadius || 0} onChange={(v: number) => setProp('borderRadius', v)} />
@@ -316,31 +457,27 @@ export const SettingsPanel = () => {
                             <PInput label={`Overlay Opacity: ${selected.props.backgroundOpacity || 0}%`} type="range" min={0} max={100} value={selected.props.backgroundOpacity || 0} onChange={(v: number) => setProp('backgroundOpacity', v)} />
                         </div>
                     </Section>
+
+                    <Section title="Presets" defaultOpen={false}>
+                        <div className="grid grid-cols-2 gap-1.5">
+                            <button onClick={() => {
+                                setProp('borderRadius', 16);
+                                setProp('borderWidth', 0);
+                                setProp('background', '#ffffff');
+                                setProp('boxShadow', '0 10px 25px -5px rgba(0, 0, 0, 0.1)');
+                            }} className="p-1.5 bg-[#F5F5F5] hover:bg-[#E5E5E5] text-[#333333] rounded text-[10px] font-medium transition-colors">Surface</button>
+
+                            <button onClick={() => {
+                                setProp('borderRadius', 16);
+                                setProp('background', 'rgba(255,255,255,0.4)');
+                                setProp('borderWidth', 1);
+                                setProp('borderColor', 'rgba(255,255,255,0.3)');
+                                setProp('backdropBlur', 10);
+                            }} className="p-1.5 bg-[#F5F5F5] hover:bg-[#E5E5E5] text-[#333333] rounded text-[10px] font-medium transition-colors">Glass</button>
+                        </div>
+                    </Section>
                 </>
             )}
-
-            {/* Quick Presets for Demo */}
-            {selected.name === 'Container' && (
-                <Section title="Presets" defaultOpen={false}>
-                    <div className="grid grid-cols-2 gap-1.5">
-                        <button onClick={() => {
-                            setProp('borderRadius', 16);
-                            setProp('borderWidth', 0);
-                            setProp('background', '#ffffff');
-                            setProp('boxShadow', '0 10px 25px -5px rgba(0, 0, 0, 0.1)');
-                        }} className="p-1.5 bg-[#F5F5F5] hover:bg-[#E5E5E5] text-[#333333] rounded text-[10px] font-medium transition-colors">Surface</button>
-
-                        <button onClick={() => {
-                            setProp('borderRadius', 16);
-                            setProp('background', 'rgba(255,255,255,0.4)');
-                            setProp('borderWidth', 1);
-                            setProp('borderColor', 'rgba(255,255,255,0.3)');
-                            setProp('backdropBlur', 10);
-                        }} className="p-1.5 bg-[#F5F5F5] hover:bg-[#E5E5E5] text-[#333333] rounded text-[10px] font-medium transition-colors">Glass</button>
-                    </div>
-                </Section>
-            )}
-
         </div>
     );
 };

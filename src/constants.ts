@@ -23,6 +23,12 @@ export interface ThemeConfig {
     title: string;
     accent: string;
   };
+  fonts: {
+    title: string;
+    header: string;
+    subheader: string;
+    body: string;
+  };
   typography: {
     fontFamily: string;
     titleSize: number;
@@ -53,8 +59,14 @@ export const THEMES: Record<ThemeType, ThemeConfig> = {
       title: '#1a1a1a',
       accent: '#3b82f6',
     },
+    fonts: {
+      title: 'Instrument Sans, sans-serif',
+      header: 'Instrument Sans, sans-serif',
+      subheader: 'Instrument Sans, sans-serif',
+      body: 'Instrument Sans, sans-serif',
+    },
     typography: {
-      fontFamily: 'Instrument Sans, sans-serif',
+      fontFamily: `var(--brand-font-body, 'Instrument Sans, sans-serif')`,
       titleSize: 42,
       textSize: 20,
       titleWeight: '800',
@@ -74,8 +86,14 @@ export const THEMES: Record<ThemeType, ThemeConfig> = {
       title: '#1a1a1a',
       accent: '#495464',
     },
+    fonts: {
+      title: 'EB Garamond, serif',
+      header: 'EB Garamond, serif',
+      subheader: 'EB Garamond, serif',
+      body: 'EB Garamond, serif',
+    },
     typography: {
-      fontFamily: 'EB Garamond, serif',
+      fontFamily: `var(--brand-font-body, 'EB Garamond, serif')`,
       titleSize: 48,
       textSize: 22,
       titleWeight: 'bold',
@@ -95,8 +113,14 @@ export const THEMES: Record<ThemeType, ThemeConfig> = {
       title: '#FFFFFF',
       accent: '#3b82f6',
     },
+    fonts: {
+      title: 'Inter, sans-serif',
+      header: 'Inter, sans-serif',
+      subheader: 'Inter, sans-serif',
+      body: 'Inter, sans-serif',
+    },
     typography: {
-      fontFamily: 'Inter, sans-serif',
+      fontFamily: `var(--brand-font-body, 'Inter, sans-serif')`,
       titleSize: 42,
       textSize: 18,
       titleWeight: 'bold',
@@ -116,8 +140,14 @@ export const THEMES: Record<ThemeType, ThemeConfig> = {
       title: '#1a1a1a',
       accent: '#3b82f6',
     },
+    fonts: {
+      title: 'Outfit, sans-serif',
+      header: 'Outfit, sans-serif',
+      subheader: 'Outfit, sans-serif',
+      body: 'Outfit, sans-serif',
+    },
     typography: {
-      fontFamily: 'Outfit, sans-serif',
+      fontFamily: `var(--brand-font-body, 'Outfit, sans-serif')`,
       titleSize: 42,
       textSize: 18,
       titleWeight: '900',

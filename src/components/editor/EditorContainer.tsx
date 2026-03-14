@@ -17,6 +17,7 @@ interface EditorContainerProps {
     onSave: (layoutJson: string) => void;
     initialLayout?: string;
     nodeLabel?: string;
+    metadata: any;
 }
 
 export const EditorContainer = ({
@@ -24,7 +25,8 @@ export const EditorContainer = ({
     onClose,
     onSave,
     initialLayout,
-    nodeLabel
+    nodeLabel,
+    metadata
 }: EditorContainerProps) => {
 
     if (!isOpen) return null;
@@ -91,7 +93,7 @@ export const EditorContainer = ({
                     </div>
 
                     {/* Right Property Inspector: Contextual Settings */}
-                    <SettingsPanel />
+                    <SettingsPanel metadata={metadata} />
                 </div>
             </Editor>
         </div>

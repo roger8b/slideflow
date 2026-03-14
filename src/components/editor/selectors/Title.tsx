@@ -11,9 +11,10 @@ export interface TitleProps {
     textAlign?: 'left' | 'center' | 'right';
     fontWeight?: string;
     fontFamily?: string;
+    background?: string;
 }
 
-export const Title = ({ text = 'New Title', fontSize = 48, color = '#495464', textAlign = 'left', fontWeight = 'bold', fontFamily = 'inherit' }: TitleProps) => {
+export const Title = ({ text = 'New Title', fontSize = 48, color = 'var(--brand-text)', textAlign = 'left', fontWeight = 'bold', fontFamily = 'var(--brand-font-title)', background = 'transparent' }: TitleProps) => {
     const { connectors: { connect, drag }, actions: { setProp }, selected } = useNode((state: any) => ({
         selected: state.events.selected,
     }));
@@ -31,6 +32,7 @@ export const Title = ({ text = 'New Title', fontSize = 48, color = '#495464', te
                 enabled && "hover:border-blue-300 hover:bg-[#F4F4F2] cursor-move",
                 "w-full"
             )}
+            style={{ backgroundColor: background }}
         >
             {enabled && selected && (
                 <div className="absolute -left-6 top-1/2 -translate-y-1/2 p-1 text-blue-500 bg-white shadow-sm rounded-l-md border border-blue-200 z-10">
@@ -44,10 +46,10 @@ export const Title = ({ text = 'New Title', fontSize = 48, color = '#495464', te
                 tagName="h1"
                 style={{
                     fontSize: `${fontSize}px`,
-                    color,
+                    color: color,
                     textAlign,
-                    fontWeight,
-                    fontFamily,
+                    fontWeight: fontWeight,
+                    fontFamily: fontFamily,
                     margin: 0,
                     padding: '4px',
                     width: '100%',
@@ -61,10 +63,11 @@ Title.craft = {
     props: {
         text: 'New Title',
         fontSize: 48,
-        color: '#495464',
+        color: 'var(--brand-text)',
         textAlign: 'left',
         fontWeight: 'bold',
-        fontFamily: 'inherit',
+        fontFamily: 'var(--brand-font-title)',
+        background: 'transparent',
     },
     displayName: 'Title',
     rules: {

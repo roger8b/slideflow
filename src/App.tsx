@@ -68,6 +68,7 @@ const SlideFlowContent = () => {
   const [isMetadataOpen, setIsMetadataOpen] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [isPlayerControlsVisible, setIsPlayerControlsVisible] = useState(false);
+  const [selectedBranchIndex, setSelectedBranchIndex] = useState(0);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState('');
   const [metadata, setMetadata] = useState<PresentationMetadata>(() => {
@@ -190,6 +191,66 @@ const SlideFlowContent = () => {
 
   const nextNodeId = outgoingEdges.length === 1 ? outgoingEdges[0].target : null;
   const isBifurcation = outgoingEdges.length > 1;
+
+  useEffect(() => {
+    if (mode !== 'player') return;
+    setSelectedBranchIndex(0);
+  }, [mode, currentNodeId, outgoingEdges.length]);
+
+  useEffect(() => {
+    if (mode !== 'player') return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)) {
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        exitPresentation();
+        return;
+      }
+
+      if (isBifurcation) {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+          event.preventDefault();
+          setSelectedBranchIndex((prev) => (prev - 1 + outgoingEdges.length) % outgoingEdges.length);
+          return;
+        }
+
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+          event.preventDefault();
+          setSelectedBranchIndex((prev) => (prev + 1) % outgoingEdges.length);
+          return;
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          const selectedEdge = outgoingEdges[selectedBranchIndex];
+          if (selectedEdge) {
+            navigateTo(selectedEdge.target);
+          }
+        }
+
+        return;
+      }
+
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        navigateBack();
+        return;
+      }
+
+      if ((event.key === 'ArrowRight' || event.key === 'ArrowDown') && nextNodeId) {
+        event.preventDefault();
+        navigateTo(nextNodeId);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mode, isBifurcation, outgoingEdges, selectedBranchIndex, nextNodeId, navigateBack, navigateTo, exitPresentation]);
 
   // --- Graph Management ---
 
@@ -603,7 +664,12 @@ const SlideFlowContent = () => {
                         <button
                           key={edge.id}
                           onClick={() => navigateTo(edge.target)}
-                          className="px-4 py-1.5 bg-[#0D99FF] text-white rounded-xl text-[11px] font-bold hover:bg-blue-600 transition-all active:scale-95 shadow-sm"
+                          className={cn(
+                            "px-4 py-1.5 rounded-xl text-[11px] font-bold transition-all active:scale-95 shadow-sm border",
+                            idx === selectedBranchIndex
+                              ? "bg-[#0D99FF] text-white border-[#0D99FF]"
+                              : "bg-white text-[#0D99FF] border-[#B6DCFF] hover:bg-blue-50"
+                          )}
                         >
                           Caminho {idx + 1}
                         </button>

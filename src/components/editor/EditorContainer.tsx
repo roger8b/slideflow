@@ -22,6 +22,8 @@ interface EditorContainerProps {
     metadata: any;
 }
 
+import { motion, AnimatePresence } from 'motion/react';
+
 export const EditorContainer = ({
     isOpen,
     onClose,
@@ -30,10 +32,16 @@ export const EditorContainer = ({
     nodeLabel,
     metadata
 }: EditorContainerProps) => {
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 z-[100] bg-white flex flex-col animate-in fade-in duration-300">
+        <AnimatePresence>
+        {isOpen && (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-[100] bg-white flex flex-col"
+            >
             <Editor
                 resolver={{
                     Container,
@@ -107,7 +115,9 @@ export const EditorContainer = ({
                     <SettingsPanel metadata={metadata} />
                 </div>
             </Editor>
-        </div>
+            </motion.div>
+        )}
+        </AnimatePresence>
     );
 };
 

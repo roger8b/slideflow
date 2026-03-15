@@ -1,47 +1,40 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   useNodesState,
   useEdgesState,
-  addEdge,
   Background,
   Controls,
   MiniMap,
-  Connection,
+  useReactFlow,
+  ReactFlowInstance,
   Edge,
   MarkerType,
-  useReactFlow,
-  Panel,
-  ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import {
-  Play,
-  Plus,
-  Save,
-  Upload,
-  ChevronRight,
-  ChevronLeft,
-  Edit3,
-  Trash2,
-  Monitor,
-  X,
-  Palette
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Play, Save, Upload } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
 
 import { CustomNode } from './components/CustomNodes';
-import { EditorContainer } from './components/editor/EditorContainer';
-import { MetadataModal } from './components/MetadataModal';
-import { ThemeModal } from './components/ThemeModal';
 import { LeftSidebar } from './components/editor/LeftSidebar';
-import { BrandKitPanel } from './components/editor/BrandKitPanel';
-import { TemplatesPanel } from './components/editor/TemplatesPanel';
-import brandKits from './data/brandKits.json';
-import { AppMode, SlideNode, SlideNodeData, PresentationFile, PresentationMetadata } from './types';
-import { COLOR_PALETTE, cn, THEMES, ThemeType, DEFAULT_BRAND } from './constants';
 
-// Node types moved inside component and memoized to avoid React Flow warning
+// Lazy loaded heavy components
+const EditorContainer = React.lazy(() => import('./components/editor/EditorContainer').then(m => ({ default: m.EditorContainer })));
+const MetadataModal = React.lazy(() => import('./components/MetadataModal').then(m => ({ default: m.MetadataModal })));
+const ThemeModal = React.lazy(() => import('./components/ThemeModal').then(m => ({ default: m.ThemeModal })));
+const BrandKitPanel = React.lazy(() => import('./components/editor/BrandKitPanel').then(m => ({ default: m.BrandKitPanel })));
+const TemplatesPanel = React.lazy(() => import('./components/editor/TemplatesPanel').then(m => ({ default: m.TemplatesPanel })));
+
+import { PlayerNavigation } from './components/canvas/PlayerNavigation';
+import { BifurcationOverlay } from './components/canvas/BifurcationOverlay';
+import { CanvasToolbar } from './components/canvas/CanvasToolbar';
+
+import { usePresentationNavigation } from './hooks/usePresentationNavigation';
+import { usePresentationGraph } from './hooks/usePresentationGraph';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
+import { AppMode, SlideNode, PresentationFile, PresentationMetadata } from './types';
+import { THEMES, ThemeType, DEFAULT_BRAND, COLOR_PALETTE } from './constants';
 
 const initialNodes: SlideNode[] = [
   {
@@ -61,16 +54,15 @@ const SlideFlowContent = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [mode, setMode] = useState<AppMode>('canvas');
-  const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
-  const [navigationHistory, setNavigationHistory] = useState<string[]>([]);
+
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isMetadataOpen, setIsMetadataOpen] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [isPlayerControlsVisible, setIsPlayerControlsVisible] = useState(false);
-  const [selectedBranchIndex, setSelectedBranchIndex] = useState(0);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState('');
+
   const [metadata, setMetadata] = useState<PresentationMetadata>(() => {
     const saved = localStorage.getItem('slideflow-metadata');
     const base = {
@@ -116,7 +108,7 @@ const SlideFlowContent = () => {
     localStorage.setItem('slideflow-metadata', JSON.stringify(metadata));
   }, [metadata]);
 
-  const { fitView, setViewport, toObject } = useReactFlow();
+  const { fitView, setViewport } = useReactFlow();
 
   const editingNode = useMemo(() => {
     return editingNodeId ? nodes.find((n) => n.id === editingNodeId) : null;
@@ -126,76 +118,38 @@ const SlideFlowContent = () => {
     custom: CustomNode,
   }), []);
 
-  // --- Navigation Logic ---
+  // --- Hooks ---
+  const {
+    currentNodeId,
+    navigationHistory,
+    selectedBranchIndex,
+    setSelectedBranchIndex,
+    startPresentation,
+    exitPresentation,
+    navigateTo,
+    navigateBack,
+    outgoingEdges,
+    nextNodeId,
+    isBifurcation
+  } = usePresentationNavigation(nodes, edges, setNodes, mode, setMode);
 
-  const startPresentation = useCallback(() => {
-    if (nodes.length === 0) return;
+  const {
+    onConnect,
+    addNodeWithTemplate,
+    addNode,
+    deleteNode,
+    onSaveNode
+  } = usePresentationGraph(nodes, setNodes, setEdges, setActiveSidebarTab, setEditingNodeId, setIsEditorOpen);
 
-    setMode('player');
-    const startNode = nodes[0].id;
-    setCurrentNodeId(startNode);
-    setNavigationHistory([startNode]);
-
-    // Focus first node
-    setTimeout(() => {
-      fitView({ nodes: [{ id: startNode }], duration: 800, padding: 0.1 });
-      updateNodesFocus(startNode);
-    }, 100);
-  }, [nodes, fitView]);
-
-  const exitPresentation = useCallback(() => {
-    setMode('canvas');
-    setCurrentNodeId(null);
-    setNavigationHistory([]);
-    // Reset focus
-    setNodes((nds) => nds.map((node) => ({
-      ...node,
-      data: { ...node.data, isFocused: undefined }
-    })));
-  }, [setNodes]);
-
-  const updateNodesFocus = useCallback((focusedId: string) => {
-    setNodes((nds) => nds.map((node) => ({
-      ...node,
-      data: {
-        ...node.data,
-        isFocused: node.id === focusedId
-      }
-    })));
-  }, [setNodes]);
-
-  const navigateTo = useCallback((nodeId: string) => {
-    setCurrentNodeId(nodeId);
-    setNavigationHistory((prev) => [...prev, nodeId]);
-    fitView({ nodes: [{ id: nodeId }], duration: 800, padding: 0.1 });
-    updateNodesFocus(nodeId);
-  }, [fitView, updateNodesFocus]);
-
-  const navigateBack = useCallback(() => {
-    if (navigationHistory.length <= 1) return;
-
-    const newHistory = [...navigationHistory];
-    newHistory.pop(); // Remove current
-    const prevNodeId = newHistory[newHistory.length - 1];
-
-    setCurrentNodeId(prevNodeId);
-    setNavigationHistory(newHistory);
-    fitView({ nodes: [{ id: prevNodeId }], duration: 800, padding: 0.1 });
-    updateNodesFocus(prevNodeId);
-  }, [navigationHistory, fitView, updateNodesFocus]);
-
-  const outgoingEdges = useMemo(() => {
-    if (!currentNodeId) return [];
-    return edges.filter((edge) => edge.source === currentNodeId);
-  }, [edges, currentNodeId]);
-
-  const nextNodeId = outgoingEdges.length === 1 ? outgoingEdges[0].target : null;
-  const isBifurcation = outgoingEdges.length > 1;
-
-  useEffect(() => {
-    if (mode !== 'player') return;
-    setSelectedBranchIndex(0);
-  }, [mode, currentNodeId, outgoingEdges.length]);
+  useKeyboardShortcuts(
+    mode,
+    nodes,
+    addNode,
+    deleteNode,
+    startPresentation,
+    setIsMetadataOpen,
+    isEditorOpen
+  );
 
   useEffect(() => {
     if (mode !== 'player') return;
@@ -250,73 +204,19 @@ const SlideFlowContent = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, isBifurcation, outgoingEdges, selectedBranchIndex, nextNodeId, navigateBack, navigateTo, exitPresentation]);
+  }, [mode, isBifurcation, outgoingEdges, selectedBranchIndex, nextNodeId, navigateBack, navigateTo, exitPresentation, setSelectedBranchIndex]);
 
-  // --- Graph Management ---
-
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge({ ...params, markerEnd: { type: MarkerType.ArrowClosed, color: COLOR_PALETTE.dark } }, eds)),
-    [setEdges]
-  );
-
-  const addNodeWithTemplate = useCallback((layout: string) => {
-    const id = `node_${Date.now()}`;
-    const newNode: SlideNode = {
-      id,
-      type: 'custom',
-      position: { x: nodes.length * 100, y: nodes.length * 100 },
-      data: { type: 'custom', label: 'Slide Template', layout },
-    };
-    setNodes((nds) => nds.concat(newNode));
-    setActiveSidebarTab('');
-  }, [nodes, setNodes]);
-
-  const addNode = useCallback(() => {
-    const id = `node_${Date.now()}`;
-    const newNode: SlideNode = {
-      id,
-      type: 'custom',
-      position: { x: Math.random() * 400, y: Math.random() * 400 },
-      data: { type: 'custom', label: 'Custom Slide' },
-    };
-    setNodes((nds) => nds.concat(newNode));
-    setEditingNodeId(id);
-    setIsEditorOpen(true);
-  }, [setNodes]);
-
-  const deleteNode = useCallback((id: string) => {
-    setNodes((nds) => nds.filter((n) => n.id !== id));
-    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
-  }, [setNodes, setEdges]);
-
-  const onSaveNode = useCallback((data: any) => {
-    if (!editingNodeId) return;
-    setNodes((nds) => nds.map((node) => {
-      if (node.id === editingNodeId) {
-        return { ...node, type: data.type, data: { ...node.data, ...data } };
-      }
-      return node;
-    }));
-    setIsEditorOpen(false);
-    setEditingNodeId(null);
-  }, [editingNodeId, setNodes]);
-
-  // --- Persistence ---
-
-  // --- Presentation Logic ---
 
   const applyThemeToNodes = useCallback((themeId: string) => {
     const theme = THEMES[themeId as ThemeType];
     if (!theme) return;
 
     setNodes((nds) => nds.map((node) => {
-      // Craft.js layout is stored as a JSON string
       if (!node.data.layout) return node;
 
       try {
         const layout = JSON.parse(node.data.layout);
 
-        // Update all nodes in the Craft instance
         Object.keys(layout).forEach(key => {
           const item = layout[key];
           if (item.type?.resolvedName === 'Title') {
@@ -329,7 +229,6 @@ const SlideFlowContent = () => {
             item.props.fontSize = theme.typography.textSize;
             item.props.fontFamily = theme.typography.fontFamily;
           } else if (item.type?.resolvedName === 'Container' && item.isCanvas) {
-            // Main container (the slide itself usually)
             if (key === 'ROOT') {
               item.props.background = theme.colors.background;
               item.props.padding = theme.layout.padding;
@@ -374,7 +273,7 @@ const SlideFlowContent = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${title.replace(/\s+/g, '_')}.slideflow.json`;
+    link.download = `${title.replace(/\\s+/g, '_')}.slideflow.json`;
     link.click();
     URL.revokeObjectURL(url);
     setIsMetadataOpen(false);
@@ -400,7 +299,6 @@ const SlideFlowContent = () => {
       }
     };
     reader.readAsText(file);
-    // Reset the input value to allow loading the same file again
     event.target.value = '';
   }, [setMetadata, setNodes, setEdges, setViewport]);
 
@@ -410,14 +308,12 @@ const SlideFlowContent = () => {
       if (!confirm) return;
     }
 
-    const brand = template.brand;
     const templateSlides = template.slides;
 
-    // Create nodes from template slides
     const newNodes: SlideNode[] = templateSlides.map((slide: any, index: number) => ({
       id: `node_${Date.now()}_${index}`,
       type: 'custom',
-      position: { x: index * 1000, y: 0 }, // Linear horizontal progression
+      position: { x: index * 1000, y: 0 },
       data: {
         type: 'custom',
         label: slide.label,
@@ -425,7 +321,6 @@ const SlideFlowContent = () => {
       },
     }));
 
-    // Create linear edges between nodes
     const newEdges: Edge[] = [];
     for (let i = 0; i < newNodes.length - 1; i++) {
       newEdges.push({
@@ -439,7 +334,6 @@ const SlideFlowContent = () => {
     setNodes(newNodes);
     setEdges(newEdges);
 
-    // Deep merge template brand with DEFAULT_BRAND for resilience
     const mergedBrand = {
       colors: { ...DEFAULT_BRAND.colors, ...template.brand?.colors },
       fonts: { ...DEFAULT_BRAND.fonts, ...template.brand?.fonts },
@@ -454,7 +348,6 @@ const SlideFlowContent = () => {
       brand: mergedBrand
     }));
 
-    // Reset view to first slide
     setTimeout(() => {
       fitView({ nodes: [{ id: newNodes[0].id }], duration: 800, padding: 0.1 });
     }, 100);
@@ -552,21 +445,25 @@ const SlideFlowContent = () => {
 
         <AnimatePresence>
           {mode === 'canvas' && activeSidebarTab === 'brand' && (
-            <BrandKitPanel
-              metadata={metadata}
-              savedBrandKits={savedBrandKits}
-              onUpdate={(brand) => setMetadata(prev => ({ ...prev, brand }))}
-              onSaveBrandKit={() => handleSaveBrandKit(metadata.brand)}
-              onClose={() => setActiveSidebarTab('')}
-            />
+            <React.Suspense fallback={<div className="w-[300px] h-full bg-white border-r border-[#E5E5E5] flex items-center justify-center text-sm text-[#888]">Loading...</div>}>
+              <BrandKitPanel
+                metadata={metadata}
+                savedBrandKits={savedBrandKits}
+                onUpdate={(brand) => setMetadata(prev => ({ ...prev, brand }))}
+                onSaveBrandKit={() => handleSaveBrandKit(metadata.brand)}
+                onClose={() => setActiveSidebarTab('')}
+              />
+            </React.Suspense>
           )}
 
           {mode === 'canvas' && activeSidebarTab === 'templates' && (
-            <TemplatesPanel
-              onSelectTemplate={addNodeWithTemplate}
-              onSelectPresentationTemplate={loadPresentationTemplate}
-              onClose={() => setActiveSidebarTab('')}
-            />
+            <React.Suspense fallback={<div className="w-[300px] h-full bg-white border-r border-[#E5E5E5] flex items-center justify-center text-sm text-[#888]">Loading...</div>}>
+              <TemplatesPanel
+                onSelectTemplate={addNodeWithTemplate}
+                onSelectPresentationTemplate={loadPresentationTemplate}
+                onClose={() => setActiveSidebarTab('')}
+              />
+            </React.Suspense>
           )}
         </AnimatePresence>
 
@@ -606,166 +503,85 @@ const SlideFlowContent = () => {
             {/* Player Navigation Overlay */}
             <AnimatePresence>
               {mode === 'player' && isPlayerControlsVisible && (
-                <Panel position="bottom-center" className="mb-8">
-                  <motion.div
-                    initial={{ y: 100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: 100, opacity: 0 }}
-                    className="bg-white px-3 py-2 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-[#E5E5E5] flex items-center gap-4"
-                  >
-                    <button
-                      onClick={navigateBack}
-                      disabled={navigationHistory.length <= 1}
-                      className="p-2 rounded-xl hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent transition-all active:scale-95 text-[#333333]"
-                    >
-                      <ChevronLeft size={24} strokeWidth={2.5} />
-                    </button>
-
-                    <div className="flex flex-col items-center px-4">
-                      <span className="text-[10px] font-bold text-[#888888] uppercase tracking-widest mb-0.5">Slide</span>
-                      <span className="text-lg font-black text-[#333333] tabular-nums">
-                        {nodes.findIndex(n => n.id === currentNodeId) + 1} <span className="text-[#BBBFCA] font-medium mx-1">/</span> {nodes.length}
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={() => nextNodeId && navigateTo(nextNodeId)}
-                      disabled={!nextNodeId || isBifurcation}
-                      className="p-2 rounded-xl hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent transition-all active:scale-95 text-[#333333]"
-                    >
-                      <ChevronRight size={24} strokeWidth={2.5} />
-                    </button>
-
-                    <div className="w-px h-8 bg-[#E5E5E5] mx-2" />
-
-                    <button
-                      onClick={exitPresentation}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#F5F5F5] text-[#333333] hover:bg-[#E5E5E5] rounded-xl transition-all font-bold text-xs active:scale-95"
-                    >
-                      <X size={16} strokeWidth={2.5} /> Sair
-                    </button>
-                  </motion.div>
-                </Panel>
+                <PlayerNavigation
+                  nodes={nodes}
+                  currentNodeId={currentNodeId}
+                  navigationHistory={navigationHistory}
+                  nextNodeId={nextNodeId}
+                  isBifurcation={isBifurcation}
+                  navigateBack={navigateBack}
+                  navigateTo={navigateTo}
+                  exitPresentation={exitPresentation}
+                />
               )}
             </AnimatePresence>
 
             {/* Bifurcation Overlay */}
             <AnimatePresence>
               {mode === 'player' && isBifurcation && (
-                <Panel position="top-center" className="mt-20">
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="bg-white px-6 py-3 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-[#E5E5E5] flex items-center gap-4"
-                  >
-                    <span className="text-xs font-bold text-[#888888] uppercase tracking-wider">Escolha seu caminho:</span>
-                    <div className="flex gap-2">
-                      {outgoingEdges.map((edge, idx) => (
-                        <button
-                          key={edge.id}
-                          onClick={() => navigateTo(edge.target)}
-                          className={cn(
-                            "px-4 py-1.5 rounded-xl text-[11px] font-bold transition-all active:scale-95 shadow-sm border",
-                            idx === selectedBranchIndex
-                              ? "bg-[#0D99FF] text-white border-[#0D99FF]"
-                              : "bg-white text-[#0D99FF] border-[#B6DCFF] hover:bg-blue-50"
-                          )}
-                        >
-                          Caminho {idx + 1}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                </Panel>
+                <BifurcationOverlay
+                  outgoingEdges={outgoingEdges}
+                  selectedBranchIndex={selectedBranchIndex}
+                  navigateTo={navigateTo}
+                />
               )}
             </AnimatePresence>
 
             {/* Dashboard Floating Toolbar (Canvas Mode) */}
             {mode === 'canvas' && (
-              <Panel position="bottom-center" className="mb-6">
-                <div className="bg-white px-2 py-1.5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-[#E5E5E5] flex items-center gap-1">
-                  <button
-                    onClick={addNode}
-                    className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-[#333333] rounded-xl transition-all text-xs font-bold active:scale-95"
-                  >
-                    <Plus size={18} className="text-[#0D99FF]" strokeWidth={2.5} /> Adicionar Slide
-                  </button>
-
-                  <div className="w-px h-6 bg-[#E5E5E5] mx-1" />
-
-                  <button
-                    onClick={() => {
-                      const selected = nodes.find(n => n.selected);
-                      if (selected) {
-                        setEditingNodeId(selected.id);
-                        setIsEditorOpen(true);
-                      }
-                    }}
-                    disabled={!nodes.some(n => n.selected)}
-                    className={cn(
-                      "p-2.5 rounded-xl transition-all active:scale-95 flex items-center gap-2 text-xs font-bold",
-                      nodes.some(n => n.selected) ? "hover:bg-gray-100 text-[#333333]" : "opacity-30 cursor-not-allowed text-[#BBBFCA]"
-                    )}
-                    title="Edit Selected Slide"
-                  >
-                    <Edit3 size={18} strokeWidth={2} /> Editar
-                  </button>
-                  <button
-                    onClick={() => {
-                      const selected = nodes.find(n => n.selected);
-                      if (selected) {
-                        deleteNode(selected.id);
-                      }
-                    }}
-                    disabled={!nodes.some(n => n.selected)}
-                    className={cn(
-                      "p-2.5 rounded-xl transition-all active:scale-95 flex items-center gap-2 text-xs font-bold",
-                      nodes.some(n => n.selected) ? "hover:bg-red-50 text-red-500" : "opacity-30 cursor-not-allowed text-[#BBBFCA]"
-                    )}
-                    title="Delete Selected Slide"
-                  >
-                    <Trash2 size={18} strokeWidth={2} /> Excluir
-                  </button>
-                </div>
-              </Panel>
+              <CanvasToolbar
+                nodes={nodes}
+                addNode={addNode}
+                deleteNode={deleteNode}
+                onEditNode={(id) => {
+                  setEditingNodeId(id);
+                  setIsEditorOpen(true);
+                }}
+              />
             )}
           </ReactFlow>
         </div>
       </main>
 
       {/* Modals */}
-      {editingNode && (
-        <EditorContainer
-          isOpen={isEditorOpen}
-          onClose={() => { setIsEditorOpen(false); setEditingNodeId(null); }}
-          onSave={(layout) => {
-            onSaveNode({ type: 'custom', layout });
-          }}
-          initialLayout={editingNode.data.layout}
-          nodeLabel={editingNode.data.label}
-          metadata={metadata}
-        />
-      )}
+      <React.Suspense fallback={null}>
+        {editingNode && (
+          <EditorContainer
+            isOpen={isEditorOpen}
+            onClose={() => { setIsEditorOpen(false); setEditingNodeId(null); }}
+            onSave={(layout) => {
+              onSaveNode(editingNodeId, { type: 'custom', layout });
+            }}
+            initialLayout={editingNode.data.layout}
+            nodeLabel={editingNode.data.label}
+            metadata={metadata}
+          />
+        )}
 
-      <MetadataModal
-        isOpen={isMetadataOpen}
-        onClose={() => setIsMetadataOpen(false)}
-        onSave={savePresentation}
-        initialTitle={metadata.title}
-        initialAuthor={metadata.author}
-        initialBaseFontSize={metadata.baseFontSize}
-      />
+        {isMetadataOpen && (
+          <MetadataModal
+            isOpen={isMetadataOpen}
+            onClose={() => setIsMetadataOpen(false)}
+            onSave={savePresentation}
+            initialTitle={metadata.title}
+            initialAuthor={metadata.author}
+            initialBaseFontSize={metadata.baseFontSize}
+          />
+        )}
 
-      <ThemeModal
-        isOpen={isThemeModalOpen}
-        onClose={() => setIsThemeModalOpen(false)}
-        onApply={(theme) => {
-          applyThemeToNodes(theme);
-          setMetadata(prev => ({ ...prev, theme }));
-          setIsThemeModalOpen(false);
-        }}
-        currentTheme={metadata.theme}
-      />
+        {isThemeModalOpen && (
+          <ThemeModal
+            isOpen={isThemeModalOpen}
+            onClose={() => setIsThemeModalOpen(false)}
+            onApply={(theme) => {
+              applyThemeToNodes(theme);
+              setMetadata(prev => ({ ...prev, theme }));
+              setIsThemeModalOpen(false);
+            }}
+            currentTheme={metadata.theme}
+          />
+        )}
+      </React.Suspense>
     </div>
   );
 };

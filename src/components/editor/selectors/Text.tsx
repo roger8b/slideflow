@@ -13,9 +13,10 @@ export interface TextProps {
     textAlign?: 'left' | 'center' | 'right' | 'justify';
     fontFamily?: string;
     background?: string;
+    widthMode?: 'fill' | 'hug';
 }
 
-export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(--brand-text)', textAlign = 'left', fontFamily = 'var(--brand-font-body)', background = 'transparent' }: TextProps) => {
+export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(--brand-text)', textAlign = 'left', fontFamily = 'var(--brand-font-body)', background = 'transparent', widthMode = 'fill' }: TextProps) => {
     const { connectors: { connect, drag }, actions: { setProp }, selected } = useNode((state: any) => ({
         selected: state.events.selected,
     }));
@@ -25,6 +26,7 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(-
     }));
 
     const [isEditing, setIsEditing] = useState(false);
+    const isHug = widthMode === 'hug';
 
     const handleDoubleClick = (e: React.MouseEvent) => {
         if (!enabled) return;
@@ -39,9 +41,13 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(-
                 "group relative border border-transparent transition-all",
                 selected && "border-blue-500 bg-blue-50/10",
                 enabled && "hover:border-blue-300 hover:bg-[#F4F4F2] cursor-move",
-                "w-full"
+                isHug ? "inline-block max-w-full" : "w-full"
             )}
-            style={{ backgroundColor: background }}
+            style={{
+                backgroundColor: background,
+                width: isHug ? 'fit-content' : '100%',
+                maxWidth: '100%'
+            }}
         >
             {enabled && selected && (
                 <div className="absolute -left-6 top-1/2 -translate-y-1/2 p-1 text-blue-500 bg-white shadow-sm rounded-l-md border border-blue-200 z-10">
@@ -49,8 +55,12 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(-
                 </div>
             )}
             <div
-                className="w-full h-full"
+                className={cn("h-full", isHug ? "inline-block max-w-full" : "w-full")}
                 onDoubleClick={handleDoubleClick}
+                style={{
+                    width: isHug ? 'fit-content' : '100%',
+                    maxWidth: '100%'
+                }}
             >
                 {enabled && isEditing ? (
                     <textarea
@@ -64,7 +74,10 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(-
                             color: color,
                             textAlign,
                             lineHeight: '1.5',
-                            fontFamily: isEditing ? 'monospace' : fontFamily
+                            fontFamily: isEditing ? 'monospace' : fontFamily,
+                            width: isHug ? 'max-content' : '100%',
+                            minWidth: isHug ? '12ch' : '100%',
+                            maxWidth: '100%'
                         }}
                     />
                 ) : (
@@ -77,7 +90,10 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(-
                             lineHeight: '1.5',
                             fontFamily: fontFamily,
                             padding: '4px',
-                            minHeight: '1em'
+                            minHeight: '1em',
+                            width: isHug ? 'fit-content' : '100%',
+                            maxWidth: '100%',
+                            display: isHug ? 'inline-block' : 'block'
                         }}
                     >
                         <ReactMarkdown
@@ -104,6 +120,7 @@ Text.craft = {
         textAlign: 'left',
         fontFamily: 'var(--brand-font-body)',
         background: 'transparent',
+        widthMode: 'fill',
     },
     displayName: 'Text',
     rules: {

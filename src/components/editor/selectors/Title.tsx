@@ -12,9 +12,10 @@ export interface TitleProps {
     fontWeight?: string;
     fontFamily?: string;
     background?: string;
+    widthMode?: 'fill' | 'hug';
 }
 
-export const Title = ({ text = 'New Title', fontSize = 48, color = 'var(--brand-text)', textAlign = 'left', fontWeight = 'bold', fontFamily = 'var(--brand-font-title)', background = 'transparent' }: TitleProps) => {
+export const Title = ({ text = 'New Title', fontSize = 48, color = 'var(--brand-text)', textAlign = 'left', fontWeight = 'bold', fontFamily = 'var(--brand-font-title)', background = 'transparent', widthMode = 'fill' }: TitleProps) => {
     const { connectors: { connect, drag }, actions: { setProp }, selected } = useNode((state: any) => ({
         selected: state.events.selected,
     }));
@@ -23,6 +24,8 @@ export const Title = ({ text = 'New Title', fontSize = 48, color = 'var(--brand-
         enabled: state.options.enabled
     }));
 
+    const isHug = widthMode === 'hug';
+
     return (
         <div
             ref={(ref) => { if (ref) connect(drag(ref)); }}
@@ -30,9 +33,13 @@ export const Title = ({ text = 'New Title', fontSize = 48, color = 'var(--brand-
                 "group relative border border-transparent transition-all",
                 selected && "border-blue-500 bg-blue-50/10",
                 enabled && "hover:border-blue-300 hover:bg-[#F4F4F2] cursor-move",
-                "w-full"
+                isHug ? "inline-block max-w-full" : "w-full"
             )}
-            style={{ backgroundColor: background }}
+            style={{
+                backgroundColor: background,
+                width: isHug ? 'fit-content' : '100%',
+                maxWidth: '100%'
+            }}
         >
             {enabled && selected && (
                 <div className="absolute -left-6 top-1/2 -translate-y-1/2 p-1 text-blue-500 bg-white shadow-sm rounded-l-md border border-blue-200 z-10">
@@ -52,7 +59,9 @@ export const Title = ({ text = 'New Title', fontSize = 48, color = 'var(--brand-
                     fontFamily: fontFamily,
                     margin: 0,
                     padding: '4px',
-                    width: '100%',
+                    width: isHug ? 'fit-content' : '100%',
+                    maxWidth: '100%',
+                    display: isHug ? 'inline-block' : 'block',
                 }}
             />
         </div>
@@ -68,6 +77,7 @@ Title.craft = {
         fontWeight: 'bold',
         fontFamily: 'var(--brand-font-title)',
         background: 'transparent',
+        widthMode: 'fill',
     },
     displayName: 'Title',
     rules: {

@@ -516,6 +516,30 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
             {/* TYPOGRAPHY */}
             {(selected.name === 'Title' || selected.name === 'Text') && (
                 <Section title="Typography">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-[#888888] uppercase tracking-wider block">Layout do texto</label>
+                        <div className="space-y-1">
+                            <div className="text-[10px] text-[#888888]">Largura da linha</div>
+                            <div className="flex bg-[#F5F5F5] rounded-md p-0.5">
+                                <button
+                                    onClick={() => setProp('widthMode', 'fill')}
+                                    className={`flex-1 text-[11px] font-medium py-1.5 rounded transition-colors ${(!selected.props.widthMode || selected.props.widthMode === 'fill') ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#666666] hover:text-[#333333]'}`}
+                                >
+                                    Ocupar toda a linha
+                                </button>
+                                <button
+                                    onClick={() => setProp('widthMode', 'hug')}
+                                    className={`flex-1 text-[11px] font-medium py-1.5 rounded transition-colors ${selected.props.widthMode === 'hug' ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#666666] hover:text-[#333333]'}`}
+                                >
+                                    Ajustar ao conteudo
+                                </button>
+                            </div>
+                            <p className="text-[10px] leading-4 text-[#888888]">
+                                Ideal para usar com icones ou outros elementos na mesma linha.
+                            </p>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-2 items-end">
                         <PInput label="Size" type="number" value={selected.props.fontSize || 16} onChange={(v: number) => setProp('fontSize', v)} />
 

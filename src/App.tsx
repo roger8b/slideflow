@@ -39,7 +39,7 @@ import { BrandKitPanel } from './components/editor/BrandKitPanel';
 import { TemplatesPanel } from './components/editor/TemplatesPanel';
 import brandKits from './data/brandKits.json';
 import { AppMode, SlideNode, SlideNodeData, PresentationFile, PresentationMetadata } from './types';
-import { COLOR_PALETTE, cn, THEMES, ThemeType } from './constants';
+import { COLOR_PALETTE, cn, THEMES, ThemeType, DEFAULT_BRAND } from './constants';
 
 // Node types moved inside component and memoized to avoid React Flow warning
 
@@ -79,33 +79,7 @@ const SlideFlowContent = () => {
       createdAt: new Date().toISOString(),
       baseFontSize: 32,
       theme: 'modern',
-      brand: {
-        colors: {
-          primary: '#0D99FF',
-          secondary: '#495464',
-          background: '#FFFFFF',
-          surface: '#F8F9FA',
-          text: '#333333',
-        },
-        fonts: {
-          title: 'Inter, sans-serif',
-          header: 'Inter, sans-serif',
-          subheader: 'Inter, sans-serif',
-          body: 'Inter, sans-serif',
-        },
-        fontSizes: {
-          title: 48,
-          header: 32,
-          subheader: 24,
-          body: 18,
-        },
-        fontWeights: {
-          title: '700',
-          header: '600',
-          subheader: '500',
-          body: '400',
-        },
-      },
+      brand: DEFAULT_BRAND,
     };
 
     if (saved) {
@@ -345,56 +319,110 @@ const SlideFlowContent = () => {
     setIsMetadataOpen(false);
   }, [rfInstance, metadata]);
 
-  const loadPresentation = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const loadPresentation = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = (e) => {
       try {
-        const presentation: PresentationFile = JSON.parse(event.target?.result as string);
-
-        // Basic validation
-        if (!presentation.nodes || !presentation.edges) {
-          throw new Error('Invalid SlideFlow file format');
-        }
-
+        const presentation = JSON.parse(e.target?.result as string) as PresentationFile;
+        setMetadata(presentation.metadata);
         setNodes(presentation.nodes);
         setEdges(presentation.edges);
-        setMetadata(presentation.metadata);
-
         if (presentation.viewport) {
           setViewport(presentation.viewport);
         }
       } catch (err) {
-        console.error('Error loading presentation:', err);
+        console.error("Failed to load presentation:", err);
+        alert("Falha ao carregar a apresentação. Verifique se o arquivo é válido.");
       }
     };
     reader.readAsText(file);
-  }, [setNodes, setEdges, setViewport]);
+    // Reset the input value to allow loading the same file again
+    event.target.value = '';
+  }, [setMetadata, setNodes, setEdges, setViewport]);
+
+  const loadPresentationTemplate = useCallback((template: any) => {
+    if (nodes.length > 0) {
+      const confirm = window.confirm("Isso irá reescrever sua apresentação atual com o novo modelo. Deseja continuar?");
+      if (!confirm) return;
+    }
+
+    const brand = template.brand;
+    const templateSlides = template.slides;
+
+    // Create nodes from template slides
+    const newNodes: SlideNode[] = templateSlides.map((slide: any, index: number) => ({
+      id: `node_${Date.now()}_${index}`,
+      type: 'custom',
+      position: { x: index * 1000, y: 0 }, // Linear horizontal progression
+      data: {
+        type: 'custom',
+        label: slide.label,
+        layout: slide.layout
+      },
+    }));
+
+    // Create linear edges between nodes
+    const newEdges: Edge[] = [];
+    for (let i = 0; i < newNodes.length - 1; i++) {
+      newEdges.push({
+        id: `edge_${newNodes[i].id}_${newNodes[i + 1].id}`,
+        source: newNodes[i].id,
+        target: newNodes[i + 1].id,
+        markerEnd: { type: MarkerType.ArrowClosed, color: COLOR_PALETTE.dark }
+      });
+    }
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+
+    // Deep merge template brand with DEFAULT_BRAND for resilience
+    const mergedBrand = {
+      colors: { ...DEFAULT_BRAND.colors, ...template.brand?.colors },
+      fonts: { ...DEFAULT_BRAND.fonts, ...template.brand?.fonts },
+      fontSizes: { ...DEFAULT_BRAND.fontSizes, ...template.brand?.fontSizes },
+      fontWeights: { ...DEFAULT_BRAND.fontWeights, ...template.brand?.fontWeights },
+      logoUrl: template.brand?.logoUrl
+    };
+
+    setMetadata(prev => ({
+      ...prev,
+      title: template.name,
+      brand: mergedBrand
+    }));
+
+    // Reset view to first slide
+    setTimeout(() => {
+      fitView({ nodes: [{ id: newNodes[0].id }], duration: 800, padding: 0.1 });
+    }, 100);
+
+    setActiveSidebarTab('');
+  }, [nodes, setNodes, setEdges, setMetadata, fitView]);
 
   return (
     <div
       className="w-full h-screen bg-[#E5E5E5] flex flex-col font-sans text-[#333333]"
       style={{
         '--slide-font-size': `${metadata.baseFontSize}px`,
-        '--brand-primary': metadata.brand?.colors.primary,
-        '--brand-secondary': metadata.brand?.colors.secondary,
-        '--brand-background': metadata.brand?.colors.background,
-        '--brand-surface': metadata.brand?.colors.surface,
-        '--brand-text': metadata.brand?.colors.text,
-        '--brand-font-title': metadata.brand?.fonts.title,
-        '--brand-font-header': metadata.brand?.fonts.header,
-        '--brand-font-subheader': metadata.brand?.fonts.subheader,
-        '--brand-font-body': metadata.brand?.fonts.body,
-        '--brand-size-title': `${metadata.brand?.fontSizes.title}px`,
-        '--brand-size-header': `${metadata.brand?.fontSizes.header}px`,
-        '--brand-size-subheader': `${metadata.brand?.fontSizes.subheader}px`,
-        '--brand-size-body': `${metadata.brand?.fontSizes.body}px`,
-        '--brand-weight-title': metadata.brand?.fontWeights.title,
-        '--brand-weight-header': metadata.brand?.fontWeights.header,
-        '--brand-weight-subheader': metadata.brand?.fontWeights.subheader,
-        '--brand-weight-body': metadata.brand?.fontWeights.body,
+        '--brand-primary': metadata.brand?.colors?.primary || DEFAULT_BRAND.colors.primary,
+        '--brand-secondary': metadata.brand?.colors?.secondary || DEFAULT_BRAND.colors.secondary,
+        '--brand-background': metadata.brand?.colors?.background || DEFAULT_BRAND.colors.background,
+        '--brand-surface': metadata.brand?.colors?.surface || DEFAULT_BRAND.colors.surface,
+        '--brand-text': metadata.brand?.colors?.text || DEFAULT_BRAND.colors.text,
+        '--brand-font-title': metadata.brand?.fonts?.title || DEFAULT_BRAND.fonts.title,
+        '--brand-font-header': metadata.brand?.fonts?.header || DEFAULT_BRAND.fonts.header,
+        '--brand-font-subheader': metadata.brand?.fonts?.subheader || DEFAULT_BRAND.fonts.subheader,
+        '--brand-font-body': metadata.brand?.fonts?.body || DEFAULT_BRAND.fonts.body,
+        '--brand-size-title': `${metadata.brand?.fontSizes?.title || DEFAULT_BRAND.fontSizes.title}px`,
+        '--brand-size-header': `${metadata.brand?.fontSizes?.header || DEFAULT_BRAND.fontSizes.header}px`,
+        '--brand-size-subheader': `${metadata.brand?.fontSizes?.subheader || DEFAULT_BRAND.fontSizes.subheader}px`,
+        '--brand-size-body': `${metadata.brand?.fontSizes?.body || DEFAULT_BRAND.fontSizes.body}px`,
+        '--brand-weight-title': metadata.brand?.fontWeights?.title || DEFAULT_BRAND.fontWeights.title,
+        '--brand-weight-header': metadata.brand?.fontWeights?.header || DEFAULT_BRAND.fontWeights.header,
+        '--brand-weight-subheader': metadata.brand?.fontWeights?.subheader || DEFAULT_BRAND.fontWeights.subheader,
+        '--brand-weight-body': metadata.brand?.fontWeights?.body || DEFAULT_BRAND.fontWeights.body,
       } as React.CSSProperties}
       onMouseMove={(e) => {
         if (mode === 'player') {
@@ -468,6 +496,14 @@ const SlideFlowContent = () => {
               savedBrandKits={savedBrandKits}
               onUpdate={(brand) => setMetadata(prev => ({ ...prev, brand }))}
               onSaveBrandKit={() => handleSaveBrandKit(metadata.brand)}
+              onClose={() => setActiveSidebarTab('')}
+            />
+          )}
+
+          {mode === 'canvas' && activeSidebarTab === 'templates' && (
+            <TemplatesPanel
+              onSelectTemplate={addNodeWithTemplate}
+              onSelectPresentationTemplate={loadPresentationTemplate}
               onClose={() => setActiveSidebarTab('')}
             />
           )}

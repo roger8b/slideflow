@@ -160,6 +160,34 @@ export const THEMES: Record<ThemeType, ThemeConfig> = {
   },
 };
 
+export const DEFAULT_BRAND = {
+  colors: {
+    primary: '#0D99FF',
+    secondary: '#495464',
+    background: '#FFFFFF',
+    surface: '#F8F9FA',
+    text: '#333333',
+  },
+  fonts: {
+    title: 'Inter, sans-serif',
+    header: 'Inter, sans-serif',
+    subheader: 'Inter, sans-serif',
+    body: 'Inter, sans-serif',
+  },
+  fontSizes: {
+    title: 48,
+    header: 32,
+    subheader: 24,
+    body: 18,
+  },
+  fontWeights: {
+    title: '700',
+    header: '600',
+    subheader: '500',
+    body: '400',
+  },
+};
+
 export const DEFAULT_NODE_DATA = {
   text: {
     content: '# New Slide\nWrite your markdown here...',

@@ -1,15 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useEditor, Element } from '@craftjs/core';
-import { Layout, Type, Image as ImageIcon, StretchVertical, Columns2, Columns3, BookOpen, User, GripVertical } from 'lucide-react';
+import { Layout, Type, Image as ImageIcon, StretchVertical, Columns2, Columns3, BookOpen, User, GripVertical, Star, Grid3X3 } from 'lucide-react';
 import { Container } from './selectors/Container';
 import { Title } from './selectors/Title';
 import { Text } from './selectors/Text';
 import { Image } from './selectors/Image';
+import { Icon } from './selectors/Icon';
 import { AILayoutGenerator } from './AILayoutGenerator';
 
 export const FloatingToolbar = () => {
     const { connectors: { create } } = useEditor();
     const [isLayoutsOpen, setIsLayoutsOpen] = useState(false);
+    const [gridVisible, setGridVisible] = useState(false);
+
+    useEffect(() => {
+        // Inject global CSS variable for grid visibility
+        document.documentElement.style.setProperty('--grid-visible', gridVisible ? '1' : '0');
+    }, [gridVisible]);
 
     // Dragging state
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -86,6 +93,13 @@ export const FloatingToolbar = () => {
                     title="Image"
                 >
                     <ImageIcon size={18} strokeWidth={1.5} />
+                </div>
+                <div
+                    ref={(ref: any) => ref && create(ref, <Icon name="Star" color="#0D99FF" size={24} />)}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl cursor-grab hover:bg-gray-100 text-[#333333] transition-colors"
+                    title="Icon"
+                >
+                    <Star size={18} strokeWidth={1.5} />
                 </div>
 
                 <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
@@ -218,18 +232,28 @@ export const FloatingToolbar = () => {
                             </div>
                         </div>
                     )}
-                </div>
+                    <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
 
-                {/* Drag Handle */}
-                <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
-                <div
-                    onPointerDown={handlePointerDown}
-                    className="w-8 h-10 flex items-center justify-center text-[#BBBFCA] cursor-move hover:bg-gray-50 rounded-lg transition-colors"
-                    title="Drag Toolbar"
-                >
-                    <GripVertical size={16} />
-                </div>
+                    {/* Grid Visibility Toggle */}
+                    <button
+                        onClick={() => setGridVisible(!gridVisible)}
+                        className={`w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${gridVisible ? 'bg-blue-50 text-[#0D99FF]' : 'text-[#888888] hover:text-[#333333] hover:bg-gray-50'}`}
+                        title="Toggle Layout Guides"
+                    >
+                        <Grid3X3 size={18} strokeWidth={gridVisible ? 2.5 : 1.5} />
+                    </button>
 
+                    {/* Drag Handle */}
+                    <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
+                    <div
+                        onPointerDown={handlePointerDown}
+                        className="w-8 h-10 flex items-center justify-center text-[#BBBFCA] cursor-move hover:bg-gray-50 rounded-lg transition-colors"
+                        title="Drag Toolbar"
+                    >
+                        <GripVertical size={16} />
+                    </div>
+
+                </div>
             </div>
         </div>
     );

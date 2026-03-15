@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useEditor } from '@craftjs/core';
-import { AlignLeft, AlignCenter, AlignRight, Box, Trash2, BookmarkPlus, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, Box, Trash2, BookmarkPlus, ChevronDown, ChevronRight, Pencil, Copy } from 'lucide-react';
 import { saveBlock } from '../../lib/savedBlocks';
+import { setClipboard } from '../../lib/clipboard';
 
 const Section = ({ title, children, defaultOpen = true }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -169,6 +170,8 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
 
     const [isSavingBlock, setIsSavingBlock] = useState(false);
     const [blockName, setBlockName] = useState('');
+    const [isRenaming, setIsRenaming] = useState(false);
+    const renameInputRef = useRef<HTMLInputElement>(null);
 
     const { actions, selected, query } = useEditor((state, query) => {
         const [currentNodeId] = state.events.selected;
@@ -180,16 +183,39 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
             selected = {
                 id: currentNodeId,
                 name: name,
+                customLabel: (node.data.custom?.label as string | undefined) || null,
                 isDeletable: query.node(currentNodeId).isDeletable(),
                 props: node.data.props,
             };
         }
 
-        return {
-            selected,
-            query
-        };
+        return { selected, query };
     });
+
+    // Fecha rename se mudar o nó selecionado
+    useEffect(() => { setIsRenaming(false); }, [selected?.id]);
+
+    // Foca o input ao entrar em modo rename
+    useEffect(() => {
+        if (isRenaming) renameInputRef.current?.select();
+    }, [isRenaming]);
+
+    const handleCopy = () => {
+        if (!selected) return;
+        try {
+            const tree = query.node(selected.id).toNodeTree();
+            setClipboard(tree);
+        } catch (err) {
+            console.warn('[SettingsPanel] Copy failed:', err);
+        }
+    };
+
+    const commitRename = (value: string) => {
+        if (!selected) return;
+        const newLabel = value.trim() || selected.name;
+        actions.setCustom(selected.id, (c: Record<string, any>) => { c.label = newLabel; });
+        setIsRenaming(false);
+    };
 
     const handleSaveBlock = () => {
         if (!selected || !blockName.trim()) return;
@@ -224,11 +250,40 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
         <div className="bg-white border-l border-[#E5E5E5] flex flex-col w-64 shrink-0 overflow-y-auto z-10">
             {/* Header section (Component Type & Actions) */}
             <div className="flex items-center justify-between p-3 border-b border-[#E5E5E5] sticky top-0 bg-white z-10">
-                <div className="flex items-center gap-2">
-                    <Box size={14} className="text-[#888888]" />
-                    <h3 className="text-[11px] font-semibold text-[#333333] tracking-wide select-none">{selected.name}</h3>
+                <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+                    <Box size={14} className="text-[#888888] shrink-0" />
+                    {isRenaming ? (
+                        <input
+                            ref={renameInputRef}
+                            className="flex-1 min-w-0 bg-white border border-[#0D99FF] rounded px-1.5 py-0.5 text-[11px] font-semibold text-[#333333] outline-none"
+                            defaultValue={selected.customLabel || selected.name}
+                            onBlur={(e) => commitRename(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter')  commitRename(e.currentTarget.value);
+                                if (e.key === 'Escape') setIsRenaming(false);
+                            }}
+                        />
+                    ) : (
+                        <button
+                            className="flex items-center gap-1.5 min-w-0 group/rename"
+                            title="Clique para renomear"
+                            onClick={() => setIsRenaming(true)}
+                        >
+                            <h3 className="text-[11px] font-semibold text-[#333333] tracking-wide truncate">
+                                {selected.customLabel || selected.name}
+                            </h3>
+                            <Pencil size={10} className="text-[#BBBFCA] opacity-0 group-hover/rename:opacity-100 transition-opacity shrink-0" />
+                        </button>
+                    )}
                 </div>
                 <div className="flex gap-1">
+                    <button
+                        onClick={handleCopy}
+                        className="p-1 hover:bg-[#F5F5F5] text-[#888888] hover:text-[#333333] rounded transition-colors"
+                        title="Copy Component (Ctrl+C)"
+                    >
+                        <Copy size={14} />
+                    </button>
                     {selected.name === 'Container' && (
                         <button
                             onClick={() => setIsSavingBlock(!isSavingBlock)}
@@ -298,6 +353,17 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
                 </Section>
             )}
 
+            {/* ICON SETTINGS */}
+            {selected.name === 'Icon' && (
+                <Section title="Icon Settings">
+                    <PInput label="Icon Name (Lucide)" value={selected.props.name} onChange={(v: string) => setProp('name', v)} placeholder="e.g. Star" />
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                        <PInput label="Size" type="number" value={selected.props.size || 24} onChange={(v: number) => setProp('size', v)} />
+                        <PInput label="Stroke Width" type="number" value={selected.props.strokeWidth || 2} onChange={(v: number) => setProp('strokeWidth', v)} />
+                    </div>
+                </Section>
+            )}
+
             {/* AUTO LAYOUT (For Containers) */}
             {selected.name === 'Container' && (
                 <Section title="Auto Layout">
@@ -356,6 +422,94 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
                         <PInput label="Gap" type="number" value={selected.props.gap || 0} onChange={(v: number) => setProp('gap', v)} />
                         <PInput label="Padding" type="number" value={selected.props.padding || 0} onChange={(v: number) => setProp('padding', v)} />
                     </div>
+
+                    <div className="pt-3 mt-3 border-t border-[#E5E5E5]">
+                        <label className="text-[10px] text-[#888888] font-semibold mb-2 block">Layout Type</label>
+                        <div className="flex bg-[#F5F5F5] rounded-md p-0.5 mb-3">
+                            <button
+                                onClick={() => setProp('display', 'flex')}
+                                className={`flex-1 text-[11px] font-medium py-1 rounded transition-colors ${(!selected.props.display || selected.props.display === 'flex') ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#888888]'}`}
+                            >
+                                Flexbox
+                            </button>
+                            <button
+                                onClick={() => setProp('display', 'grid')}
+                                className={`flex-1 text-[11px] font-medium py-1 rounded transition-colors ${selected.props.display === 'grid' ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#888888]'}`}
+                            >
+                                Grid
+                            </button>
+                        </div>
+
+                        {selected.props.display === 'grid' && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-1">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] text-[#888888] font-semibold uppercase tracking-wider">Colunas</label>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="range"
+                                            min="1"
+                                            max="6"
+                                            step="1"
+                                            value={(() => {
+                                                const cols = selected.props.gridTemplateColumns || '';
+                                                if (cols.includes('repeat')) {
+                                                    const match = cols.match(/repeat\((\d+)/);
+                                                    return match ? match[1] : '2';
+                                                }
+                                                return cols.split(' ').filter(Boolean).length || '2';
+                                            })()}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setProp('gridTemplateColumns', `repeat(${val}, 1fr)`);
+                                            }}
+                                            className="flex-1 accent-[#0D99FF]"
+                                        />
+                                        <span className="text-[11px] font-bold text-[#333333] w-4 text-center">
+                                            {(() => {
+                                                const cols = selected.props.gridTemplateColumns || '';
+                                                if (cols.includes('repeat')) {
+                                                    const match = cols.match(/repeat\((\d+)/);
+                                                    return match ? match[1] : '2';
+                                                }
+                                                return cols.split(' ').filter(Boolean).length || '2';
+                                            })()}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] text-[#888888] font-semibold uppercase tracking-wider">Presets</label>
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                        {[
+                                            { label: '1/2 + 1/2', val: '1fr 1fr' },
+                                            { label: '1/3 + 1/3 + 1/3', val: '1fr 1fr 1fr' },
+                                            { label: '1/3 + 2/3', val: '1fr 2fr' },
+                                            { label: '2/3 + 1/3', val: '2fr 1fr' },
+                                            { label: '1/4 + 3/4', val: '1fr 3fr' },
+                                            { label: 'Larga Central', val: '1fr 2fr 1fr' }
+                                        ].map((preset) => (
+                                            <button
+                                                key={preset.label}
+                                                onClick={() => setProp('gridTemplateColumns', preset.val)}
+                                                className={`p-1.5 text-[9px] font-medium border rounded transition-all hover:bg-gray-50 text-center ${selected.props.gridTemplateColumns === preset.val ? 'border-[#0D99FF] text-[#0D99FF] bg-blue-50/50' : 'border-[#E5E5E5] text-[#333333]'}`}
+                                            >
+                                                {preset.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="pt-2 border-t border-dashed border-[#E5E5E5]">
+                                    <PInput
+                                        label="Configuração Manual (CSS)"
+                                        value={selected.props.gridTemplateColumns || '1fr 1fr'}
+                                        onChange={(v: string) => setProp('gridTemplateColumns', v)}
+                                        placeholder="ex: 1fr 2fr"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </Section>
             )}
 
@@ -399,7 +553,7 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
             )}
 
             {/* FILL & STROKE / COLOR */}
-            {(selected.name === 'Container' || selected.name === 'Title' || selected.name === 'Text') && (
+            {(selected.name === 'Container' || selected.name === 'Title' || selected.name === 'Text' || selected.name === 'Icon') && (
                 <Section title={selected.name === 'Container' ? "Fill" : "Color & Background"}>
 
                     {selected.name === 'Container' && (
@@ -410,7 +564,7 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
                         />
                     )}
 
-                    {(selected.name === 'Title' || selected.name === 'Text') && (
+                    {(selected.name === 'Title' || selected.name === 'Text' || selected.name === 'Icon') && (
                         <div className="flex flex-col gap-4">
                             <BrandColorPicker
                                 brand={brand}

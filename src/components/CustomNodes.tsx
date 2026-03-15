@@ -7,6 +7,7 @@ import { Container } from './editor/selectors/Container';
 import { Title } from './editor/selectors/Title';
 import { Text } from './editor/selectors/Text';
 import { Image } from './editor/selectors/Image';
+import { Icon } from './editor/selectors/Icon';
 
 export const CustomNode = memo(({ data, selected }: NodeProps<SlideNodeData>) => {
   return (
@@ -37,6 +38,7 @@ export const CustomNode = memo(({ data, selected }: NodeProps<SlideNodeData>) =>
               Title,
               Text,
               Image,
+              Icon,
             }}
           >
             <Frame json={data.layout} />

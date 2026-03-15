@@ -42,7 +42,7 @@ export const SidebarPalette = () => {
 
             <div className="flex-1 overflow-y-auto w-full">
                 {activeTab === 'layers' && (
-                    <div className="animate-in fade-in duration-200 w-full">
+                    <div className="animate-in fade-in duration-200 w-full h-full flex flex-col">
                         <LayersTree />
                     </div>
                 )}

@@ -285,121 +285,10 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
                 </Section>
             )}
 
-            {/* AUTO LAYOUT (For Containers) */}
-            {selected.name === 'Container' && (
-                <Section title="Layout & Spacing">
-                    <div className="grid grid-cols-2 gap-2">
-                        <PSelect
-                            label="Direction"
-                            value={selected.props.flexDirection || "column"}
-                            onChange={(v: string) => setProp('flexDirection', v)}
-                            options={[
-                                { label: "↓ Vertical", value: "column" },
-                                { label: "→ Horizontal", value: "row" }
-                            ]}
-                        />
-                        <PSelect
-                            label="Height Mode"
-                            value={selected.props.height === 'auto' ? 'auto' : selected.props.height === '100%' ? 'fill' : 'fixed'}
-                            onChange={(v: string) => {
-                                if (v === 'auto') setProp('height', 'auto');
-                                else if (v === 'fill') setProp('height', '100%');
-                                else setProp('height', '300px');
-                            }}
-                            options={[
-                                { label: "Hug contents", value: "auto" },
-                                { label: "Fill container", value: "fill" },
-                                { label: "Fixed", value: "fixed" }
-                            ]}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                        <PSelect
-                            label="AlignItems"
-                            value={selected.props.alignItems || "flex-start"}
-                            onChange={(v: string) => setProp('alignItems', v)}
-                            options={[
-                                { label: "Start", value: "flex-start" },
-                                { label: "Center", value: "center" },
-                                { label: "End", value: "flex-end" },
-                                { label: "Stretch", value: "stretch" }
-                            ]}
-                        />
-                        <PSelect
-                            label="Justify"
-                            value={selected.props.justifyContent || "flex-start"}
-                            onChange={(v: string) => setProp('justifyContent', v)}
-                            options={[
-                                { label: "Start", value: "flex-start" },
-                                { label: "Center", value: "center" },
-                                { label: "End", value: "flex-end" },
-                                { label: "Space Btwn", value: "space-between" }
-                            ]}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                        <PInput label="Gap" type="number" value={selected.props.gap || 0} onChange={(v: number) => setProp('gap', v)} />
-                        <PInput label="Padding" type="number" value={selected.props.padding || 0} onChange={(v: number) => setProp('padding', v)} />
-                    </div>
-
-                    <div className="pt-3 mt-3 border-t border-[#E5E5E5]">
-                        <label className="text-[10px] text-[#888888] font-semibold mb-2 block text-center">GRID SETTINGS</label>
-                        <div className="flex bg-[#F5F5F5] rounded-md p-0.5 mb-3">
-                            <button
-                                onClick={() => setProp('display', 'flex')}
-                                className={`flex-1 text-[11px] font-bold py-1 rounded transition-colors ${(!selected.props.display || selected.props.display === 'flex') ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#888888]'}`}
-                            >
-                                Flex
-                            </button>
-                            <button
-                                onClick={() => setProp('display', 'grid')}
-                                className={`flex-1 text-[11px] font-bold py-1 rounded transition-colors ${selected.props.display === 'grid' ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#888888]'}`}
-                            >
-                                Grid
-                            </button>
-                        </div>
-
-                        {selected.props.display === 'grid' && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-top-1">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] text-[#888888] font-semibold uppercase tracking-wider text-center block">Columns</label>
-                                    <div className="flex items-center gap-3">
-                                        <input
-                                            type="range"
-                                            min="1"
-                                            max="6"
-                                            step="1"
-                                            value={(() => {
-                                                const cols = selected.props.gridTemplateColumns || '';
-                                                if (cols.includes('repeat')) {
-                                                    const match = cols.match(/repeat\((\d+)/);
-                                                    return match ? match[1] : '2';
-                                                }
-                                                return cols.split(' ').filter(Boolean).length || '2';
-                                            })()}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setProp('gridTemplateColumns', `repeat(${val}, 1fr)`);
-                                            }}
-                                            className="flex-1 accent-[#0D99FF]"
-                                        />
-                                        <span className="text-[11px] font-bold text-[#333333] w-4 text-center">
-                                            {(() => {
-                                                const cols = selected.props.gridTemplateColumns || '';
-                                                if (cols.includes('repeat')) {
-                                                    const match = cols.match(/repeat\((\d+)/);
-                                                    return match ? match[1] : '2';
-                                                }
-                                                return cols.split(' ').filter(Boolean).length || '2';
-                                            })()}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+            {/* Height Fixed input (Container only, shown when height is a fixed px value) */}
+            {selected.name === 'Container' && typeof selected.props.height === 'string' && selected.props.height.endsWith('px') && (
+                <Section title="Height">
+                    <PInput label="Fixed Height (px)" type="number" value={parseInt(selected.props.height) || 100} onChange={(v: number) => setProp('height', `${v}px`)} />
                 </Section>
             )}
 
@@ -409,22 +298,6 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
                         <div className="grid grid-cols-2 gap-2">
                             <PInput label="Radius" type="number" value={selected.props.borderRadius || 0} onChange={(v: number) => setProp('borderRadius', v)} />
                             <PInput label="Border W" type="number" value={selected.props.borderWidth || 0} onChange={(v: number) => setProp('borderWidth', v)} />
-                        </div>
-                    </Section>
-
-                    <Section title="Effects" defaultOpen={false}>
-                        <PInput label={`Background Blur: ${selected.props.backdropBlur || 0}px`} type="range" min={0} max={40} value={selected.props.backdropBlur || 0} onChange={(v: number) => setProp('backdropBlur', v)} />
-
-                        <div className="pt-2 border-t border-[#E5E5E5] mt-2">
-                            <label className="text-[10px] text-[#888888] block mb-1">Image Overlay</label>
-                            <input
-                                type="text"
-                                value={selected.props.backgroundImage || ''}
-                                onChange={(e) => setProp('backgroundImage', e.target.value)}
-                                placeholder="Image URL..."
-                                className="w-full bg-white border border-[#E5E5E5] focus:border-[#0D99FF] rounded p-1.5 text-[11px] outline-none mb-2"
-                            />
-                            <PInput label={`Overlay Opacity: ${selected.props.backgroundOpacity || 0}%`} type="range" min={0} max={100} value={selected.props.backgroundOpacity || 0} onChange={(v: number) => setProp('backgroundOpacity', v)} />
                         </div>
                     </Section>
 

@@ -641,6 +641,47 @@ export const ContextualToolbar = ({
                                         })()}
                                     </div>
 
+                                    <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
+
+                                    {/* Height Mode toggle */}
+                                    {(() => {
+                                        const h = selected.props.height as string | undefined;
+                                        const mode = !h || h === 'auto' ? 'hug' : h === '100%' ? 'fill' : 'fix';
+                                        const fixedPx = mode === 'fix' ? (parseInt(h!) || 100) : 100;
+                                        return (
+                                            <div className="flex items-center gap-1">
+                                                <div className="flex bg-gray-50 rounded-xl p-0.5 h-9">
+                                                    {(['hug', 'fill', 'fix'] as const).map((m) => (
+                                                        <button
+                                                            key={m}
+                                                            onClick={() => {
+                                                                if (m === 'hug') setProp('height', 'auto');
+                                                                else if (m === 'fill') setProp('height', '100%');
+                                                                else setProp('height', `${fixedPx}px`);
+                                                            }}
+                                                            className={cn(
+                                                                "h-8 px-2 text-[10px] font-bold rounded-lg transition-all uppercase",
+                                                                mode === m ? "bg-white shadow-sm text-[#0D99FF]" : "text-[#888888] hover:text-[#333333]"
+                                                            )}
+                                                            title={m === 'hug' ? 'Hug contents' : m === 'fill' ? 'Fill container' : 'Fixed height'}
+                                                        >{m}</button>
+                                                    ))}
+                                                </div>
+                                                {mode === 'fix' && (
+                                                    <div className="flex items-center bg-gray-50 rounded-xl px-2 h-9">
+                                                        <input
+                                                            type="number"
+                                                            value={fixedPx}
+                                                            onChange={(e) => setProp('height', `${parseInt(e.target.value) || 100}px`)}
+                                                            className="bg-transparent border-none text-center text-[12px] font-black w-12 outline-none"
+                                                        />
+                                                        <span className="text-[10px] text-[#888888] font-bold">px</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+
                                     {/* FX button + popover */}
                                     <div className="relative ml-1" ref={fxRef}>
                                         <button
@@ -702,17 +743,40 @@ export const ContextualToolbar = ({
                                 </>
                             )}
 
-                            {/* Icon Name */}
+                            {/* Icon Name + Size + Stroke */}
                             {isIcon && (
-                                <div className="px-2">
-                                    <input
-                                        type="text"
-                                        value={selected.props.name || 'Star'}
-                                        onChange={(e) => setProp('name', e.target.value)}
-                                        className="bg-gray-50 border-none rounded-xl px-3 h-9 text-[11px] font-bold outline-none w-[100px]"
-                                        placeholder="Nome Icone"
-                                    />
-                                </div>
+                                <>
+                                    <div className="px-2">
+                                        <input
+                                            type="text"
+                                            value={selected.props.name || 'Star'}
+                                            onChange={(e) => setProp('name', e.target.value)}
+                                            className="bg-gray-50 border-none rounded-xl px-3 h-9 text-[11px] font-bold outline-none w-[100px]"
+                                            placeholder="Nome Icone"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-1.5 px-1">
+                                        <div className="flex items-center bg-gray-50 rounded-xl px-2 h-9">
+                                            <span className="text-[10px] text-[#888888] font-bold mr-2">SZ</span>
+                                            <input
+                                                type="number"
+                                                value={selected.props.size || 24}
+                                                onChange={(e) => setProp('size', parseInt(e.target.value) || 24)}
+                                                className="bg-transparent border-none text-center text-[12px] font-black w-8 outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex items-center bg-gray-50 rounded-xl px-2 h-9">
+                                            <span className="text-[10px] text-[#888888] font-bold mr-2">STK</span>
+                                            <input
+                                                type="number"
+                                                step="0.5"
+                                                value={selected.props.strokeWidth || 2}
+                                                onChange={(e) => setProp('strokeWidth', parseFloat(e.target.value) || 2)}
+                                                className="bg-transparent border-none text-center text-[12px] font-black w-8 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                </>
                             )}
                         </>
                     )}

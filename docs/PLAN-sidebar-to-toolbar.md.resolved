@@ -1,0 +1,143 @@
+# PLAN: Sidebar → Toolbar Migration Audit
+> Gerado em: 2026-03-16 | Agente: project-planner
+
+---
+
+## 🎯 Objetivo
+
+Identificar quais controles da **barra lateral direita ([SettingsPanel](file:///Users/roger.silva/Downloads/slideflow/src/components/editor/SettingsPanel.tsx#57-454))** já foram migrados para a **[ContextualToolbar](file:///Users/roger.silva/Downloads/slideflow/src/components/editor/ContextualToolbar.tsx#44-766)**, quais estão faltando, e quais podem ser aposentados ou mantidos como secundários.
+
+---
+
+## 📊 Mapa Completo: Sidebar vs Toolbar
+
+### 🟦 Container
+
+| Controle (Sidebar) | Sidebar Seção | Status Toolbar | Observação |
+|---|---|---|---|
+| Background color | (ColorSelector) | ✅ Migrado | `FILL` + color picker |
+| Border Radius | Stroke & Corners | ✅ Migrado | `RAD` input |
+| Border Width | Stroke & Corners | ✅ Migrado | `BORD` input |
+| Border Color | Stroke & Corners | ✅ Migrado | Botão de cor ao lado de `BORD` |
+| Padding | Layout & Spacing | ✅ Migrado | `PAD` input |
+| Gap | Layout & Spacing | ✅ Migrado | `GAP` input |
+| FlexDirection (Row/Col) | Layout & Spacing | ✅ Migrado | Toggle Rows/Columns |
+| AlignItems (cross) | Layout & Spacing | ✅ Migrado | Grupo de ícones cross-axis |
+| JustifyContent (main) | Layout & Spacing | ✅ Migrado | Grupo de ícones main-axis |
+| Display: Flex/Grid | Grid Settings | ✅ Migrado | Toggle Flex/Grid |
+| Grid columns (stepper) | Grid Settings | ✅ Migrado | Stepper +/- colunas |
+| Box Shadow | Effects | ✅ Migrado | Botão `SHD` com ciclo |
+| Backdrop Blur | Effects | ✅ Migrado | FX popover > slider blur |
+| Background Image | Effects | ✅ Migrado | FX popover > URL input |
+| Overlay Opacity | Effects | ✅ Migrado | FX popover > slider opacidade |
+| **Height Mode** | Layout & Spacing | ❌ **FALTANDO** | "Hug / Fill / Fixed" — não existe na toolbar |
+| **Presets (Surface/Glass)** | Presets | ❌ **FALTANDO** | Atalhos de estilo — útil, sem equivalente na toolbar |
+| Save as Block | Header | ⚠️ Parcial | Só existe no painel lateral (BookmarkPlus) |
+
+---
+
+### 🟡 Text / Title
+
+| Controle (Sidebar) | Sidebar Seção | Status Toolbar | Observação |
+|---|---|---|---|
+| Font Family | (abre FontSidebar) | ✅ Migrado | Botão com nome da fonte |
+| Font Size | Text Controls | ✅ Migrado | Stepper +/- |
+| Font Weight (bold) | Text Controls | ✅ Migrado | Botão Bold |
+| Font Style (italic) | Text Controls | ✅ Migrado | Botão Italic |
+| Text Decoration | Text Controls | ✅ Migrado | Botão Underline |
+| Text Align | Text Controls | ✅ Migrado | Botões L/C/R/Justify |
+| Text Color | Text Controls | ✅ Migrado | ColorSelector |
+| Width Mode (fill/hug) | Layout do texto | ✅ Migrado | Botões StretchHorizontal/Minimize2 |
+| **Text Content (edit)** | Text Content | ❌ **FALTANDO** | Textarea edição de texto só existe no painel |
+
+---
+
+### 🟠 Image
+
+| Controle (Sidebar) | Sidebar Seção | Status Toolbar | Observação |
+|---|---|---|---|
+| Image URL / src | Image Source | ✅ Migrado | Input URL na toolbar |
+
+---
+
+### 🟣 Icon
+
+| Controle (Sidebar) | Sidebar Seção | Status Toolbar | Observação |
+|---|---|---|---|
+| Icon Name (Lucide) | Icon Settings | ✅ Migrado | Input de nome do ícone |
+| Icon Color | (ColorSelector) | ✅ Migrado | ColorSelector |
+| Border Radius | — | ✅ Migrado | `RAD` |
+| Border Width | — | ✅ Migrado | `BORD` |
+| **Icon Size** | Icon Settings | ❌ **FALTANDO** | Só no painel: `size` |
+| **Stroke Width** | Icon Settings | ❌ **FALTANDO** | Só no painel: `strokeWidth` |
+
+---
+
+## 🔴 Resumo: O que FALTA migrar
+
+### Prioridade Alta
+
+| # | Item | Componente | Prop |
+|---|---|---|---|
+| 1 | **Height Mode** | Container | `height: auto / 100% / Npx` |
+| 2 | **Text Content Editor** | Text | [text](file:///Users/roger.silva/Downloads/slideflow/src/components/editor/ContextualToolbar.tsx#44-766) (textarea) |
+
+### Prioridade Média
+
+| # | Item | Componente | Prop |
+|---|---|---|---|
+| 3 | **Icon Size** | Icon | `size` |
+| 4 | **Icon Stroke Width** | Icon | `strokeWidth` |
+
+### Prioridade Baixa
+
+| # | Item | Componente | Notas |
+|---|---|---|---|
+| 5 | **Style Presets** | Container | "Surface", "Glass" — atalhos |
+| 6 | **Save as Block** | Container | Migrar ou manter no sidebar |
+
+---
+
+## 📐 Decisão de Arquitetura: O que fazer com o SettingsPanel?
+
+| Opção | Prós | Contras |
+|---|---|---|
+| A) Remover completamente | UI limpa, toolbar é a fonte de verdade | Perde controles raros (height fixed, icon size) |
+| B) Manter tudo duplicado | Nada se perde | Complexidade dobrada, manutenção pesada |
+| **C) Sidebar = "Advanced only"** ✅ | Separação clara de responsabilidade | Requer limpeza das seções duplicadas |
+
+> **Recomendação: Opção C** — Toolbar para controles de 90% do uso. Sidebar apenas para: Height Fixed (com valor px), edição de texto longa, icon size/stroke, presets avançados.
+
+---
+
+## 🗂️ Tarefas de Implementação
+
+### Fase 1 — Gaps críticos (Alta prioridade)
+
+- [ ] **T1** — Adicionar `Height Mode` na toolbar do Container
+  - Toggle compacto: `Hug | Fill | Fixed`
+  - Quando `Fixed`: mostrar um input de px ao lado
+  - Arquivo: [ContextualToolbar.tsx](file:///Users/roger.silva/Downloads/slideflow/src/components/editor/ContextualToolbar.tsx)
+
+- [ ] **T2** — Limpar seções duplicadas do [SettingsPanel](file:///Users/roger.silva/Downloads/slideflow/src/components/editor/SettingsPanel.tsx#57-454)
+  - Remover: Layout, Alignment, Gap, Padding, Grid, Flex, Shadow, Blur
+  - Manter apenas: Height Fixed input, Presets, Save Block
+
+### Fase 2 — Icon controls (Média prioridade)
+
+- [ ] **T3** — Adicionar `Size` e `Stroke Width` na toolbar do Icon
+  - Dois inputs compactos lado a lado (como RAD/BORD)
+
+### Fase 3 — Polish (Baixa prioridade)
+
+- [ ] **T4** — Avaliar edição de texto: double-click inline vs. manter no sidebar
+- [ ] **T5** — Avaliar Presets (Surface/Glass) como botão rápido na toolbar
+
+---
+
+## ✅ Verificação Final
+
+- [ ] Todos os controles de 90% do uso estão na toolbar
+- [ ] SettingsPanel mostra apenas controles avançados/raros
+- [ ] Nenhuma funcionalidade foi perdida
+- [ ] A toolbar não transborda em telas menores

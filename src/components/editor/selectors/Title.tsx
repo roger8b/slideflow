@@ -10,12 +10,25 @@ export interface TitleProps {
     color?: string;
     textAlign?: 'left' | 'center' | 'right';
     fontWeight?: string;
+    fontStyle?: string;
+    textDecoration?: string;
     fontFamily?: string;
     background?: string;
     widthMode?: 'fill' | 'hug';
 }
 
-export const Title = ({ text = 'New Title', fontSize = 48, color = 'var(--brand-text)', textAlign = 'left', fontWeight = 'bold', fontFamily = 'var(--brand-font-title)', background = 'transparent', widthMode = 'fill' }: TitleProps) => {
+export const Title = ({
+    text = 'New Title',
+    fontSize = 48,
+    color = 'var(--brand-text)',
+    textAlign = 'left',
+    fontWeight = 'bold',
+    fontStyle = 'normal',
+    textDecoration = 'none',
+    fontFamily = 'var(--brand-font-title)',
+    background = 'transparent',
+    widthMode = 'fill'
+}: TitleProps) => {
     const { connectors: { connect, drag }, actions: { setProp }, selected } = useNode((state: any) => ({
         selected: state.events.selected,
     }));
@@ -23,8 +36,18 @@ export const Title = ({ text = 'New Title', fontSize = 48, color = 'var(--brand-
     const { enabled } = useEditor((state) => ({
         enabled: state.options.enabled
     }));
-
     const isHug = widthMode === 'hug';
+    const isGradient = color?.includes('gradient');
+    const textStyle: React.CSSProperties = isGradient ? {
+        backgroundImage: color,
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        color: 'transparent', // Fallback
+        display: isHug ? 'inline-block' : 'block',
+    } : {
+        color: color,
+        display: isHug ? 'inline-block' : 'block',
+    };
 
     return (
         <div
@@ -36,7 +59,7 @@ export const Title = ({ text = 'New Title', fontSize = 48, color = 'var(--brand-
                 isHug ? "inline-block max-w-full" : "w-full"
             )}
             style={{
-                backgroundColor: background,
+                background: background,
                 width: isHug ? 'fit-content' : '100%',
                 maxWidth: '100%'
             }}
@@ -53,15 +76,16 @@ export const Title = ({ text = 'New Title', fontSize = 48, color = 'var(--brand-
                 tagName="h1"
                 style={{
                     fontSize: `${fontSize}px`,
-                    color: color,
                     textAlign,
                     fontWeight: fontWeight,
+                    fontStyle: fontStyle,
+                    textDecoration: textDecoration,
                     fontFamily: fontFamily,
                     margin: 0,
                     padding: '4px',
                     width: isHug ? 'fit-content' : '100%',
                     maxWidth: '100%',
-                    display: isHug ? 'inline-block' : 'block',
+                    ...textStyle
                 }}
             />
         </div>

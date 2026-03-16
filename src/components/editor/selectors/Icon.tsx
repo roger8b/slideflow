@@ -42,7 +42,7 @@ export const Icon = ({
                 enabled && "hover:border-blue-300 hover:bg-[#F4F4F2] cursor-move"
             )}
             style={{
-                backgroundColor: background,
+                background: background,
                 padding: `${padding}px`,
                 borderRadius: `${borderRadius}px`
             }}

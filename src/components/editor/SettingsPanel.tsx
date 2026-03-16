@@ -24,6 +24,7 @@ const Section = ({ title, children, defaultOpen = true }: { title: string, child
     );
 };
 
+// Basic components for the panel
 const PInput = ({ label, value, onChange, type = "text", placeholder = "", min, max }: any) => (
     <div className="flex flex-col gap-1 w-full">
         {label && <label className="text-[10px] text-[#888888]">{label}</label>}
@@ -52,115 +53,6 @@ const PSelect = ({ label, value, onChange, options }: any) => (
         </select>
     </div>
 );
-
-const BrandSwatches = ({ brand, onSelect, activeColor }: { brand: any, onSelect: (color: string) => void, activeColor?: string }) => (
-    <div className="flex flex-wrap gap-1.5 mt-2">
-        {Object.entries(brand.colors).map(([key, value]) => {
-            const varString = `var(--brand-${key})`;
-            return (
-                <button
-                    key={key}
-                    onClick={() => onSelect(varString)}
-                    title={`${key}: ${value}`}
-                    className={`w-6 h-6 rounded-md border shadow-sm transition-all hover:scale-110 active:scale-95 ${activeColor === varString ? 'ring-2 ring-[#0D99FF] ring-offset-1 border-[#0D99FF]' : 'border-black/5'}`}
-                    style={{ backgroundColor: value as string }}
-                />
-            );
-        })}
-    </div>
-);
-
-const BrandFonts = ({ brand, onSelect, activeFont }: { brand: any, onSelect: (font: string) => void, activeFont?: string }) => {
-    const fontOptions = Object.entries(brand.fonts).map(([key, value]) => {
-        return {
-            label: key.charAt(0).toUpperCase() + key.slice(1),
-            value: `var(--brand-font-${key})`
-        };
-    });
-
-    // Add current font if not part of brand setup
-    if (activeFont && !fontOptions.find(o => o.value === activeFont)) {
-        fontOptions.unshift({ label: 'Customizada', value: activeFont });
-    }
-
-    return (
-        <select
-            value={activeFont || ''}
-            onChange={(e) => onSelect(e.target.value)}
-            className="w-full bg-white border border-[#E5E5E5] focus:border-[#0D99FF] rounded p-1.5 text-[11px] outline-none appearance-none font-medium mt-1 truncate"
-        >
-            {fontOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                </option>
-            ))}
-        </select>
-    );
-};
-
-const BrandColorPicker = ({ brand, label, value, onChange }: { brand: any, label?: string, value: string, onChange: (val: string) => void }) => {
-    const getActualHexFromValue = (val: string) => {
-        if (!val) return '#ffffff';
-        if (val.startsWith('#')) return val.substring(0, 7);
-        if (val.startsWith('var(--brand-')) {
-            const key = val.replace('var(--brand-', '').replace(')', '');
-            const hex = brand.colors[key as keyof typeof brand.colors] as string | undefined;
-            return hex && hex.startsWith('#') ? hex.substring(0, 7) : '#ffffff';
-        }
-        return '#ffffff';
-    };
-
-    const colorPickerValue = getActualHexFromValue(value);
-
-    const colorOptions = Object.keys(brand.colors).map((key) => ({
-        value: `var(--brand-${key})`,
-        label: ({
-            primary: 'Primária',
-            secondary: 'Secundária',
-            background: 'Fundo',
-            surface: 'Superfície',
-            text: 'Texto'
-        } as Record<string, string>)[key] || key.charAt(0).toUpperCase() + key.slice(1)
-    }));
-
-    if (!colorOptions.find(o => o.value === value)) {
-        colorOptions.unshift({ value: value, label: value.startsWith('#') ? value.toUpperCase() : value });
-    }
-
-    return (
-        <div className="flex flex-col gap-2 pt-2">
-            {label && <label className="text-[10px] font-bold text-[#888888] uppercase tracking-wider block">{label}</label>}
-            <div className="flex items-center gap-2">
-                <div className="relative w-6 h-6 rounded border border-[#E5E5E5] overflow-hidden shrink-0 shadow-sm cursor-pointer">
-                    <input
-                        type="color"
-                        value={colorPickerValue}
-                        onChange={(e) => onChange(e.target.value)}
-                        className="absolute inset-[-10px] w-12 h-12 cursor-pointer bg-transparent"
-                    />
-                </div>
-                <select
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    className="flex-1 bg-white border border-[#E5E5E5] hover:border-[#BBBFCA] focus:border-[#0D99FF] rounded p-1.5 text-[11px] outline-none appearance-none font-medium truncate"
-                >
-                    {colorOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>
-                            {opt.value.startsWith('var') ? `◆ ${opt.label}` : `${opt.label}`}
-                        </option>
-                    ))}
-                </select>
-            </div>
-            <div className="pt-2 mt-1">
-                <BrandSwatches
-                    brand={brand}
-                    onSelect={onChange}
-                    activeColor={value}
-                />
-            </div>
-        </div>
-    );
-};
 
 export const SettingsPanel = ({ metadata }: { metadata: any }) => {
     const brand = metadata?.brand || {
@@ -259,7 +151,7 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
                             defaultValue={selected.customLabel || selected.name}
                             onBlur={(e) => commitRename(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter')  commitRename(e.currentTarget.value);
+                                if (e.key === 'Enter') commitRename(e.currentTarget.value);
                                 if (e.key === 'Escape') setIsRenaming(false);
                             }}
                         />
@@ -366,7 +258,7 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
 
             {/* AUTO LAYOUT (For Containers) */}
             {selected.name === 'Container' && (
-                <Section title="Auto Layout">
+                <Section title="Layout & Spacing">
                     <div className="grid grid-cols-2 gap-2">
                         <PSelect
                             label="Direction"
@@ -395,7 +287,7 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
 
                     <div className="grid grid-cols-2 gap-2">
                         <PSelect
-                            label="Align"
+                            label="AlignItems"
                             value={selected.props.alignItems || "flex-start"}
                             onChange={(v: string) => setProp('alignItems', v)}
                             options={[
@@ -424,17 +316,17 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
                     </div>
 
                     <div className="pt-3 mt-3 border-t border-[#E5E5E5]">
-                        <label className="text-[10px] text-[#888888] font-semibold mb-2 block">Layout Type</label>
+                        <label className="text-[10px] text-[#888888] font-semibold mb-2 block text-center">GRID SETTINGS</label>
                         <div className="flex bg-[#F5F5F5] rounded-md p-0.5 mb-3">
                             <button
                                 onClick={() => setProp('display', 'flex')}
-                                className={`flex-1 text-[11px] font-medium py-1 rounded transition-colors ${(!selected.props.display || selected.props.display === 'flex') ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#888888]'}`}
+                                className={`flex-1 text-[11px] font-bold py-1 rounded transition-colors ${(!selected.props.display || selected.props.display === 'flex') ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#888888]'}`}
                             >
-                                Flexbox
+                                Flex
                             </button>
                             <button
                                 onClick={() => setProp('display', 'grid')}
-                                className={`flex-1 text-[11px] font-medium py-1 rounded transition-colors ${selected.props.display === 'grid' ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#888888]'}`}
+                                className={`flex-1 text-[11px] font-bold py-1 rounded transition-colors ${selected.props.display === 'grid' ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#888888]'}`}
                             >
                                 Grid
                             </button>
@@ -443,7 +335,7 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
                         {selected.props.display === 'grid' && (
                             <div className="space-y-4 animate-in fade-in slide-in-from-top-1">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] text-[#888888] font-semibold uppercase tracking-wider">Colunas</label>
+                                    <label className="text-[10px] text-[#888888] font-semibold uppercase tracking-wider text-center block">Columns</label>
                                     <div className="flex items-center gap-3">
                                         <input
                                             type="range"
@@ -476,138 +368,9 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
                                         </span>
                                     </div>
                                 </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-[10px] text-[#888888] font-semibold uppercase tracking-wider">Presets</label>
-                                    <div className="grid grid-cols-2 gap-1.5">
-                                        {[
-                                            { label: '1/2 + 1/2', val: '1fr 1fr' },
-                                            { label: '1/3 + 1/3 + 1/3', val: '1fr 1fr 1fr' },
-                                            { label: '1/3 + 2/3', val: '1fr 2fr' },
-                                            { label: '2/3 + 1/3', val: '2fr 1fr' },
-                                            { label: '1/4 + 3/4', val: '1fr 3fr' },
-                                            { label: 'Larga Central', val: '1fr 2fr 1fr' }
-                                        ].map((preset) => (
-                                            <button
-                                                key={preset.label}
-                                                onClick={() => setProp('gridTemplateColumns', preset.val)}
-                                                className={`p-1.5 text-[9px] font-medium border rounded transition-all hover:bg-gray-50 text-center ${selected.props.gridTemplateColumns === preset.val ? 'border-[#0D99FF] text-[#0D99FF] bg-blue-50/50' : 'border-[#E5E5E5] text-[#333333]'}`}
-                                            >
-                                                {preset.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="pt-2 border-t border-dashed border-[#E5E5E5]">
-                                    <PInput
-                                        label="Configuração Manual (CSS)"
-                                        value={selected.props.gridTemplateColumns || '1fr 1fr'}
-                                        onChange={(v: string) => setProp('gridTemplateColumns', v)}
-                                        placeholder="ex: 1fr 2fr"
-                                    />
-                                </div>
                             </div>
                         )}
                     </div>
-                </Section>
-            )}
-
-            {/* TYPOGRAPHY */}
-            {(selected.name === 'Title' || selected.name === 'Text') && (
-                <Section title="Typography">
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-[#888888] uppercase tracking-wider block">Layout do texto</label>
-                        <div className="space-y-1">
-                            <div className="text-[10px] text-[#888888]">Largura da linha</div>
-                            <div className="flex bg-[#F5F5F5] rounded-md p-0.5">
-                                <button
-                                    onClick={() => setProp('widthMode', 'fill')}
-                                    className={`flex-1 text-[11px] font-medium py-1.5 rounded transition-colors ${(!selected.props.widthMode || selected.props.widthMode === 'fill') ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#666666] hover:text-[#333333]'}`}
-                                >
-                                    Ocupar toda a linha
-                                </button>
-                                <button
-                                    onClick={() => setProp('widthMode', 'hug')}
-                                    className={`flex-1 text-[11px] font-medium py-1.5 rounded transition-colors ${selected.props.widthMode === 'hug' ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#666666] hover:text-[#333333]'}`}
-                                >
-                                    Ajustar ao conteudo
-                                </button>
-                            </div>
-                            <p className="text-[10px] leading-4 text-[#888888]">
-                                Ideal para usar com icones ou outros elementos na mesma linha.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 items-end">
-                        <PInput label="Size" type="number" value={selected.props.fontSize || 16} onChange={(v: number) => setProp('fontSize', v)} />
-
-                        <div className="flex border border-[#E5E5E5] rounded overflow-hidden">
-                            <button
-                                onClick={() => setProp('textAlign', 'left')}
-                                className={`flex-1 p-1.5 flex justify-center items-center ${selected.props.textAlign === 'left' ? 'bg-[#E5E5E5] text-[#333333]' : 'bg-white text-[#888888] hover:bg-gray-50'}`}
-                            >
-                                <AlignLeft size={14} />
-                            </button>
-                            <button
-                                onClick={() => setProp('textAlign', 'center')}
-                                className={`flex-1 p-1.5 flex justify-center items-center ${selected.props.textAlign === 'center' ? 'bg-[#E5E5E5] text-[#333333]' : 'bg-white text-[#888888] hover:bg-gray-50'}`}
-                            >
-                                <AlignCenter size={14} />
-                            </button>
-                            <button
-                                onClick={() => setProp('textAlign', 'right')}
-                                className={`flex-1 p-1.5 flex justify-center items-center ${selected.props.textAlign === 'right' ? 'bg-[#E5E5E5] text-[#333333]' : 'bg-white text-[#888888] hover:bg-gray-50'}`}
-                            >
-                                <AlignRight size={14} />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="pt-3 mt-3 border-t border-gray-100">
-                        <label className="text-[10px] font-bold text-[#888888] uppercase tracking-wider mb-2 block">Fontes da Marca</label>
-                        <BrandFonts
-                            brand={brand}
-                            onSelect={(font: string) => setProp('fontFamily', font)}
-                            activeFont={selected.props.fontFamily}
-                        />
-                    </div>
-                </Section>
-            )}
-
-            {/* FILL & STROKE / COLOR */}
-            {(selected.name === 'Container' || selected.name === 'Title' || selected.name === 'Text' || selected.name === 'Icon') && (
-                <Section title={selected.name === 'Container' ? "Fill" : "Color & Background"}>
-
-                    {selected.name === 'Container' && (
-                        <BrandColorPicker
-                            brand={brand}
-                            value={selected.props.background || 'transparent'}
-                            onChange={(val: string) => setProp('background', val)}
-                        />
-                    )}
-
-                    {(selected.name === 'Title' || selected.name === 'Text' || selected.name === 'Icon') && (
-                        <div className="flex flex-col gap-4">
-                            <BrandColorPicker
-                                brand={brand}
-                                label="Text Color"
-                                value={selected.props.color || '#333333'}
-                                onChange={(val: string) => setProp('color', val)}
-                            />
-
-                            <div className="border-t border-gray-100 pt-1">
-                                <BrandColorPicker
-                                    brand={brand}
-                                    label="Background"
-                                    value={selected.props.background || 'transparent'}
-                                    onChange={(val: string) => setProp('background', val)}
-                                />
-                            </div>
-                        </div>
-                    )}
-
                 </Section>
             )}
 

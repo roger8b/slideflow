@@ -12,11 +12,25 @@ export interface TextProps {
     color?: string;
     textAlign?: 'left' | 'center' | 'right' | 'justify';
     fontFamily?: string;
+    fontWeight?: string;
+    fontStyle?: string;
+    textDecoration?: string;
     background?: string;
     widthMode?: 'fill' | 'hug';
 }
 
-export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(--brand-text)', textAlign = 'left', fontFamily = 'var(--brand-font-body)', background = 'transparent', widthMode = 'fill' }: TextProps) => {
+export const Text = ({
+    text = 'Your text here...',
+    fontSize = 18,
+    color = 'var(--brand-text)',
+    textAlign = 'left',
+    fontFamily = 'var(--brand-font-body)',
+    fontWeight = 'normal',
+    fontStyle = 'normal',
+    textDecoration = 'none',
+    background = 'transparent',
+    widthMode = 'fill'
+}: TextProps) => {
     const { connectors: { connect, drag }, actions: { setProp }, selected } = useNode((state: any) => ({
         selected: state.events.selected,
     }));
@@ -34,6 +48,15 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(-
         setIsEditing(true);
     };
 
+    const isGradient = color?.includes('gradient');
+    const textStyle: React.CSSProperties = isGradient ? {
+        backgroundImage: color,
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+    } : {
+        color: color,
+    };
+
     return (
         <div
             ref={(ref: any) => { if (ref) connect(drag(ref)); }}
@@ -44,7 +67,7 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(-
                 isHug ? "inline-block max-w-full" : "w-full"
             )}
             style={{
-                backgroundColor: background,
+                background: background,
                 width: isHug ? 'fit-content' : '100%',
                 maxWidth: '100%'
             }}
@@ -71,9 +94,12 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(-
                         className="w-full min-h-[100px] bg-transparent outline-none resize-none px-1 py-1 border-none focus:ring-0"
                         style={{
                             fontSize: `${fontSize}px`,
-                            color: color,
+                            ...textStyle,
                             textAlign,
                             lineHeight: '1.5',
+                            fontWeight,
+                            fontStyle,
+                            textDecoration,
                             fontFamily: isEditing ? 'monospace' : fontFamily,
                             width: isHug ? 'max-content' : '100%',
                             minWidth: isHug ? '12ch' : '100%',
@@ -85,9 +111,12 @@ export const Text = ({ text = 'Your text here...', fontSize = 18, color = 'var(-
                         className="markdown-content text-inherit"
                         style={{
                             fontSize: `${fontSize}px`,
-                            color: color,
+                            ...textStyle,
                             textAlign,
                             lineHeight: '1.5',
+                            fontWeight,
+                            fontStyle,
+                            textDecoration,
                             fontFamily: fontFamily,
                             padding: '4px',
                             minHeight: '1em',

@@ -77,7 +77,7 @@ export const Container = ({
                 position: 'relative',
                 display: 'flex', // Outer wrapper is always flex to manage size correctly
                 flexDirection: 'column',
-                backgroundColor: background,
+                background: background,
                 ...bgStyles,
                 padding: `${padding}px`,
                 gap: `${gap}px`,

@@ -43,6 +43,57 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { cn } from '../../constants';
 
+// Buffered numeric input — commits to onChange only on blur or Enter,
+// preventing the "snap to fallback" issue with controlled inputs.
+const NumericInput = ({
+    value,
+    onChange,
+    min,
+    className,
+    suffix,
+}: {
+    value: number;
+    onChange: (v: number) => void;
+    min?: number;
+    className?: string;
+    suffix?: string;
+}) => {
+    const [local, setLocal] = useState(String(value));
+    const isFocused = useRef(false);
+    const localRef = useRef(String(value));
+
+    // Sync from external only when the input is not focused
+    useEffect(() => {
+        if (!isFocused.current) {
+            setLocal(String(value));
+            localRef.current = String(value);
+        }
+    }, [value]);
+
+    const commit = () => {
+        const parsed = parseInt(localRef.current);
+        const clamped = isNaN(parsed) ? value : (min !== undefined ? Math.max(min, parsed) : parsed);
+        onChange(clamped);
+        localRef.current = String(clamped);
+        setLocal(String(clamped));
+    };
+
+    return (
+        <div className="flex items-center">
+            <input
+                type="number"
+                value={local}
+                onFocus={() => { isFocused.current = true; }}
+                onBlur={() => { isFocused.current = false; commit(); }}
+                onChange={(e) => { localRef.current = e.target.value; setLocal(e.target.value); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
+                className={className}
+            />
+            {suffix && <span className="text-[10px] text-[#888888] font-bold">{suffix}</span>}
+        </div>
+    );
+};
+
 export const ContextualToolbar = ({
     metadata,
     onOpenColorPicker,
@@ -616,10 +667,10 @@ export const ContextualToolbar = ({
                                     <div className="flex items-center gap-1.5 px-2">
                                         <div className="flex items-center bg-gray-50 rounded-xl px-2 h-9">
                                             <span className="text-[10px] text-[#888888] font-bold mr-2">PAD</span>
-                                            <input
-                                                type="number"
+                                            <NumericInput
                                                 value={selected.props.padding || 0}
-                                                onChange={(e) => setProp('padding', parseInt(e.target.value) || 0)}
+                                                onChange={(v) => setProp('padding', v)}
+                                                min={0}
                                                 className="bg-transparent border-none text-center text-[12px] font-black w-8 outline-none"
                                             />
                                         </div>
@@ -653,10 +704,10 @@ export const ContextualToolbar = ({
 
                                     <div className="flex items-center bg-gray-50 rounded-xl px-2 h-9 ml-1">
                                         <span className="text-[10px] text-[#888888] font-bold mr-2">GAP</span>
-                                        <input
-                                            type="number"
+                                        <NumericInput
                                             value={selected.props.gap || 0}
-                                            onChange={(e) => setProp('gap', parseInt(e.target.value) || 0)}
+                                            onChange={(v) => setProp('gap', v)}
+                                            min={0}
                                             className="bg-transparent border-none text-center text-[12px] font-black w-8 outline-none"
                                         />
                                     </div>
@@ -773,13 +824,13 @@ export const ContextualToolbar = ({
                                                 </div>
                                                 {mode === 'fix' && (
                                                     <div className="flex items-center bg-gray-50 rounded-xl px-2 h-9">
-                                                        <input
-                                                            type="number"
+                                                        <NumericInput
                                                             value={fixedPx}
-                                                            onChange={(e) => setProp('height', `${parseInt(e.target.value) || 100}px`)}
+                                                            onChange={(v) => setProp('height', `${v}px`)}
+                                                            min={1}
                                                             className="bg-transparent border-none text-center text-[12px] font-black w-12 outline-none"
+                                                            suffix="px"
                                                         />
-                                                        <span className="text-[10px] text-[#888888] font-bold">px</span>
                                                     </div>
                                                 )}
                                             </div>

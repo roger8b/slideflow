@@ -81,7 +81,7 @@ export const Container = ({
                 ...bgStyles,
                 padding: `${padding}px`,
                 gap: `${gap}px`,
-                flexGrow: (isFixed || computedHeight === 'auto') ? 0 : 1,
+                flexGrow: height === '100%' ? 1 : 0,
                 flexShrink: 1,
                 flexBasis: (isFixed && computedHeight !== 'auto') ? computedHeight : (computedHeight === '100%' ? '0%' : 'auto'),
                 height: computedHeight === '100%' ? 'auto' : computedHeight,

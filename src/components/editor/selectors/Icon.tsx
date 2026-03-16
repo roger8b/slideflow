@@ -4,7 +4,7 @@ import * as Icons from 'lucide-react';
 import { GripVertical } from 'lucide-react';
 import { cn } from '../../../constants';
 
-export interface IconProps {
+interface IconProps {
     name?: string;
     size?: number;
     color?: string;

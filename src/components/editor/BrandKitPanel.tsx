@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     X,
     Plus,
@@ -57,6 +57,8 @@ export const BrandKitPanel: React.FC<BrandKitPanelProps> = ({ metadata, savedBra
 
     const [activeFontEdit, setActiveFontEdit] = useState<string | null>(null);
 
+    const allBrandKits = useMemo(() => [...savedBrandKits, ...brandKits], [savedBrandKits, brandKits]);
+
     const updateLogo = (url: string) => {
         onUpdate({ ...brand, logoUrl: url });
     };
@@ -89,7 +91,7 @@ export const BrandKitPanel: React.FC<BrandKitPanelProps> = ({ metadata, savedBra
                         </button>
                     </div>
                     <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                        {[...savedBrandKits, ...brandKits].map((kit) => (
+                        {allBrandKits.map((kit) => (
                             <button
                                 key={kit.id}
                                 onClick={() => onUpdate(kit as any)}

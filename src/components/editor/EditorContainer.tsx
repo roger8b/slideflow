@@ -8,7 +8,6 @@ import { Text } from './selectors/Text';
 import { Image } from './selectors/Image';
 import { Icon } from './selectors/Icon';
 import { SidebarPalette } from './SidebarPalette';
-import { SettingsPanel } from './SettingsPanel';
 import { KeyboardShortcuts } from './KeyboardShortcuts';
 import { FloatingToolbar } from './FloatingToolbar';
 import { ContextualToolbar } from './ContextualToolbar';
@@ -162,9 +161,6 @@ export const EditorContainer = ({
                             `}} />
                                 </div>
                             </div>
-
-                            {/* Right Property Inspector: Contextual Settings */}
-                            <SettingsPanel metadata={metadata} />
 
                             {/* Universal Font Sidebar */}
                             <FontSidebar

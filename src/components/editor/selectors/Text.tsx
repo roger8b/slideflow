@@ -40,11 +40,13 @@ export const Text = ({
     }));
 
     const [isEditing, setIsEditing] = useState(false);
+    const [originalText, setOriginalText] = useState(text);
     const isHug = widthMode === 'hug';
 
     const handleDoubleClick = (e: React.MouseEvent) => {
         if (!enabled) return;
         e.stopPropagation();
+        setOriginalText(text);
         setIsEditing(true);
     };
 
@@ -91,6 +93,12 @@ export const Text = ({
                         value={text}
                         onBlur={() => setIsEditing(false)}
                         onChange={(e) => setProp((props: any) => (props.text = e.target.value))}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                                setProp((props: any) => (props.text = originalText));
+                                setIsEditing(false);
+                            }
+                        }}
                         className="w-full min-h-[100px] bg-transparent outline-none resize-none px-1 py-1 border-none focus:ring-0"
                         style={{
                             fontSize: `${fontSize}px`,

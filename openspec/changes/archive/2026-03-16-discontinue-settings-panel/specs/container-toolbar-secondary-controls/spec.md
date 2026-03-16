@@ -1,6 +1,5 @@
-## Purpose
-Defines the secondary Container controls available in the ContextualToolbar: border color picker, box shadow cycle, flex/grid display toggle, grid column stepper, effects popover (blur/background/opacity), and the SettingsPanel advanced-only layout.
-## Requirements
+## MODIFIED Requirements
+
 ### Requirement: SettingsPanel shows only advanced controls for Container
 The SettingsPanel for a Container element SHALL display only the following controls:
 - **Height Fixed input**: a numeric px input, shown only when `height` is a fixed px value (FIX mode)
@@ -33,3 +32,24 @@ After full migration, the SettingsPanel SHALL be removed from the editor layout 
 
 ---
 
+## REMOVED Requirements
+
+### Requirement: Toolbar shows border color picker for Container
+**Reason**: Border color moved to the `⚙️` overflow panel to reduce primary toolbar density.
+**Migration**: Use the `⚙️` overflow panel to access the border color picker.
+
+### Requirement: Toolbar shows box shadow cycle button for Container
+**Reason**: Box shadow moved to the `⚙️` overflow panel to reduce primary toolbar density.
+**Migration**: Use the `⚙️` overflow panel to cycle shadow presets.
+
+### Requirement: Toolbar shows display mode toggle (Flex / Grid) for Container
+**Reason**: Flex/Grid toggle moved to the `⚙️` overflow panel to reduce primary toolbar density.
+**Migration**: Use the `⚙️` overflow panel to switch display mode.
+
+### Requirement: Grid column count stepper is shown when display is grid
+**Reason**: Grid column stepper moved to the `⚙️` overflow panel alongside the display toggle.
+**Migration**: Use the `⚙️` overflow panel to adjust column count.
+
+### Requirement: Toolbar has an effects popover for secondary container controls
+**Reason**: Replaced by the unified `⚙️` overflow panel which includes all effects controls plus border, shadow, layout mode, presets, and save-as-block.
+**Migration**: Use the `⚙️` overflow panel to access blur, background image, and opacity controls.

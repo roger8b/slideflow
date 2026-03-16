@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useEditor } from '@craftjs/core';
 import { setClipboard, cloneNodeTree } from '../../lib/clipboard';
+import { saveBlock } from '../../lib/savedBlocks';
 import {
     Type,
     Trash2,
@@ -36,7 +37,8 @@ import {
     AlignCenterHorizontal,
     AlignEndHorizontal,
     SeparatorHorizontal,
-    MoreHorizontal
+    SlidersHorizontal,
+    BookmarkPlus,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { cn } from '../../constants';
@@ -74,23 +76,27 @@ export const ContextualToolbar = ({
 
     const [isRenaming, setIsRenaming] = useState(false);
     const renameInputRef = useRef<HTMLInputElement>(null);
-    const [isFxOpen, setIsFxOpen] = useState(false);
-    const fxRef = useRef<HTMLDivElement>(null);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const settingsRef = useRef<HTMLDivElement>(null);
+    const [isSavingBlock, setIsSavingBlock] = useState(false);
+    const [blockName, setBlockName] = useState('');
 
-    // Close rename if selection changes
-    useEffect(() => { setIsRenaming(false); setIsFxOpen(false); }, [selected?.id]);
+    // Close panels if selection changes
+    useEffect(() => { setIsRenaming(false); setIsSettingsOpen(false); setIsSavingBlock(false); setBlockName(''); }, [selected?.id]);
 
-    // Close FX popover on outside click
+    // Close settings panel on outside click
     useEffect(() => {
-        if (!isFxOpen) return;
+        if (!isSettingsOpen) return;
         const handleMouseDown = (e: MouseEvent) => {
-            if (fxRef.current && !fxRef.current.contains(e.target as Node)) {
-                setIsFxOpen(false);
+            if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+                setIsSettingsOpen(false);
+                setIsSavingBlock(false);
+                setBlockName('');
             }
         };
         document.addEventListener('mousedown', handleMouseDown);
         return () => document.removeEventListener('mousedown', handleMouseDown);
-    }, [isFxOpen]);
+    }, [isSettingsOpen]);
 
     useEffect(() => {
         if (isRenaming) renameInputRef.current?.select();
@@ -126,6 +132,19 @@ export const ContextualToolbar = ({
             }
         } catch (err) {
             console.warn('[Toolbar] Duplicate failed:', err);
+        }
+    };
+
+    const handleSaveBlock = () => {
+        if (!selected || !blockName.trim()) return;
+        try {
+            const tree = query.node(selected.id).toNodeTree();
+            saveBlock(blockName.trim(), tree);
+            setIsSavingBlock(false);
+            setBlockName('');
+            setIsSettingsOpen(false);
+        } catch (err) {
+            console.error('[Toolbar] Save block failed:', err);
         }
     };
 
@@ -228,6 +247,211 @@ export const ContextualToolbar = ({
                     <div className="absolute inset-0 transition-opacity" style={{ background: value }} />
                     <Palette size={14} className={hex.toLowerCase() === '#ffffff' ? 'text-gray-400 z-10' : 'text-white/40 z-10'} />
                 </button>
+            </div>
+        );
+    };
+
+    // Settings Overflow Panel for Container
+    const SettingsPanel = () => {
+        const currentShadow = selected.props.boxShadow || 'none';
+        const shadowIdx = SHADOW_PRESETS.indexOf(currentShadow as any);
+        const shadowLabel = shadowIdx === 1 ? 'Soft' : shadowIdx === 2 ? 'Strong' : 'None';
+        const hasShadow = shadowIdx > 0;
+        const cols = getGridColCount(selected.props.gridTemplateColumns || '');
+        const isGrid = selected.props.display === 'grid';
+
+        return (
+            <div className="absolute top-full mt-2 right-0 bg-white border border-[#E5E5E5] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] p-3 z-50 w-64 space-y-4">
+                {/* Border group */}
+                <div>
+                    <span className="text-[9px] font-bold text-[#BBBFCA] uppercase tracking-wider block mb-2">Border</span>
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center bg-gray-50 rounded-xl px-2 h-8 flex-1">
+                            <span className="text-[10px] text-[#888888] font-bold mr-2">RAD</span>
+                            <input
+                                type="number"
+                                value={selected.props.borderRadius || 0}
+                                onChange={(e) => setProp('borderRadius', parseInt(e.target.value) || 0)}
+                                className="bg-transparent border-none text-center text-[12px] font-black w-10 outline-none"
+                            />
+                        </div>
+                        <div className="flex items-center bg-gray-50 rounded-xl px-2 h-8 flex-1">
+                            <span className="text-[10px] text-[#888888] font-bold mr-2">BORD</span>
+                            <input
+                                type="number"
+                                value={selected.props.borderWidth || 0}
+                                onChange={(e) => setProp('borderWidth', parseInt(e.target.value) || 0)}
+                                className="bg-transparent border-none text-center text-[12px] font-black w-10 outline-none"
+                            />
+                        </div>
+                        <button
+                            onClick={() => onOpenColorPicker(selected.id, 'borderColor', selected.props.borderColor || '#BBBFCA')}
+                            className="w-8 h-8 rounded-xl border border-[#E5E5E5] hover:border-[#BBBFCA] shadow-sm transition-all relative overflow-hidden flex-shrink-0"
+                            title="Cor da borda"
+                            style={{ background: selected.props.borderColor || '#BBBFCA' }}
+                        />
+                    </div>
+                </div>
+
+                {/* Shadow group */}
+                <div>
+                    <span className="text-[9px] font-bold text-[#BBBFCA] uppercase tracking-wider block mb-2">Shadow</span>
+                    <button
+                        onClick={() => {
+                            const next = SHADOW_PRESETS[(shadowIdx < 0 ? 0 : shadowIdx + 1) % SHADOW_PRESETS.length];
+                            setProp('boxShadow', next);
+                        }}
+                        className={cn(
+                            "w-full h-8 flex items-center justify-center gap-2 rounded-xl text-[10px] font-bold transition-all border",
+                            hasShadow ? "bg-blue-50 text-[#0D99FF] border-blue-100" : "bg-gray-50 text-[#888888] border-transparent hover:border-gray-200"
+                        )}
+                        title="Clique para alternar sombra"
+                    >
+                        <Square size={12} className={hasShadow ? "drop-shadow-md" : ""} />
+                        <span>SHD: {shadowLabel}</span>
+                    </button>
+                </div>
+
+                {/* Display group */}
+                <div>
+                    <span className="text-[9px] font-bold text-[#BBBFCA] uppercase tracking-wider block mb-2">Display</span>
+                    <div className="flex items-center gap-2">
+                        <div className="flex bg-gray-50 rounded-xl p-0.5 flex-1">
+                            <button
+                                onClick={() => setProp('display', 'flex')}
+                                className={cn(
+                                    "flex-1 h-7 text-[10px] font-bold rounded-lg transition-all",
+                                    (!selected.props.display || selected.props.display === 'flex') ? "bg-white shadow-sm text-[#0D99FF]" : "text-[#888888] hover:text-[#333333]"
+                                )}
+                            >Flex</button>
+                            <button
+                                onClick={() => {
+                                    setProp('display', 'grid');
+                                    if (!selected.props.gridTemplateColumns) setProp('gridTemplateColumns', 'repeat(2, 1fr)');
+                                }}
+                                className={cn(
+                                    "flex-1 h-7 text-[10px] font-bold rounded-lg transition-all",
+                                    selected.props.display === 'grid' ? "bg-white shadow-sm text-[#0D99FF]" : "text-[#888888] hover:text-[#333333]"
+                                )}
+                            >Grid</button>
+                        </div>
+                        {isGrid && (
+                            <div className="flex items-center bg-gray-50 rounded-xl px-0.5 h-8">
+                                <button
+                                    onClick={() => cols > 1 && setProp('gridTemplateColumns', `repeat(${cols - 1}, 1fr)`)}
+                                    disabled={cols <= 1}
+                                    className="w-7 h-7 flex items-center justify-center hover:bg-white hover:shadow-sm rounded-lg transition-all disabled:opacity-30"
+                                ><Minus size={11} /></button>
+                                <span className="w-5 text-center text-[12px] font-black text-[#333333]">{cols}</span>
+                                <button
+                                    onClick={() => cols < 6 && setProp('gridTemplateColumns', `repeat(${cols + 1}, 1fr)`)}
+                                    disabled={cols >= 6}
+                                    className="w-7 h-7 flex items-center justify-center hover:bg-white hover:shadow-sm rounded-lg transition-all disabled:opacity-30"
+                                ><Plus size={11} /></button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Effects group */}
+                <div>
+                    <span className="text-[9px] font-bold text-[#BBBFCA] uppercase tracking-wider block mb-2">Effects</span>
+                    <div className="space-y-2">
+                        <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-[10px] font-bold text-[#888888]">Blur</span>
+                                <span className="text-[10px] font-bold text-[#333333]">{selected.props.backdropBlur || 0}px</span>
+                            </div>
+                            <input
+                                type="range" min={0} max={40}
+                                value={selected.props.backdropBlur || 0}
+                                onChange={(e) => setProp('backdropBlur', parseInt(e.target.value))}
+                                className="w-full accent-[#0D99FF]"
+                            />
+                        </div>
+                        <div>
+                            <span className="text-[10px] font-bold text-[#888888] block mb-1">Background Image</span>
+                            <input
+                                type="text"
+                                value={selected.props.backgroundImage || ''}
+                                onChange={(e) => setProp('backgroundImage', e.target.value)}
+                                placeholder="URL da imagem..."
+                                className="w-full bg-[#F5F5F5] border-none rounded-lg px-2.5 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-[#0D99FF]"
+                            />
+                        </div>
+                        <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-[10px] font-bold text-[#888888]">Opacity</span>
+                                <span className="text-[10px] font-bold text-[#333333]">{selected.props.backgroundOpacity || 0}%</span>
+                            </div>
+                            <input
+                                type="range" min={0} max={100}
+                                value={selected.props.backgroundOpacity || 0}
+                                onChange={(e) => setProp('backgroundOpacity', parseInt(e.target.value))}
+                                className="w-full accent-[#0D99FF]"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Presets group */}
+                <div>
+                    <span className="text-[9px] font-bold text-[#BBBFCA] uppercase tracking-wider block mb-2">Presets</span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                            onClick={() => {
+                                setProp('borderRadius', 16);
+                                setProp('borderWidth', 0);
+                                setProp('background', '#ffffff');
+                                setProp('boxShadow', '0 10px 25px -5px rgba(0, 0, 0, 0.1)');
+                            }}
+                            className="p-1.5 bg-[#F5F5F5] hover:bg-[#E5E5E5] text-[#333333] rounded-lg text-[10px] font-bold transition-colors"
+                        >Surface</button>
+                        <button
+                            onClick={() => {
+                                setProp('borderRadius', 16);
+                                setProp('background', 'rgba(255,255,255,0.4)');
+                                setProp('borderWidth', 1);
+                                setProp('borderColor', 'rgba(255,255,255,0.3)');
+                                setProp('backdropBlur', 10);
+                            }}
+                            className="p-1.5 bg-[#F5F5F5] hover:bg-[#E5E5E5] text-[#333333] rounded-lg text-[10px] font-bold transition-colors"
+                        >Glass</button>
+                    </div>
+                </div>
+
+                {/* Save as Block */}
+                <div className="border-t border-[#E5E5E5] pt-3">
+                    {isSavingBlock ? (
+                        <div className="flex gap-1.5">
+                            <input
+                                autoFocus
+                                type="text"
+                                value={blockName}
+                                onChange={(e) => setBlockName(e.target.value)}
+                                placeholder="Nome do bloco..."
+                                className="flex-1 bg-[#F5F5F5] border-none rounded-lg px-2.5 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-[#0D99FF]"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveBlock();
+                                    if (e.key === 'Escape') { setIsSavingBlock(false); setBlockName(''); }
+                                }}
+                            />
+                            <button
+                                onClick={handleSaveBlock}
+                                disabled={!blockName.trim()}
+                                className="px-2.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                            >Save</button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => setIsSavingBlock(true)}
+                            className="w-full flex items-center justify-center gap-2 h-8 bg-[#F5F5F5] hover:bg-[#E5E5E5] text-[#333333] rounded-lg text-[10px] font-bold transition-colors"
+                        >
+                            <BookmarkPlus size={12} />
+                            Save as Block
+                        </button>
+                    )}
+                </div>
             </div>
         );
     };
@@ -386,28 +610,10 @@ export const ContextualToolbar = ({
 
                             <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
 
-                            {/* Radius & Border (Compact) */}
-                            <div className="flex items-center gap-1.5 px-2">
-                                <div className="flex items-center bg-gray-50 rounded-xl px-2 h-9">
-                                    <span className="text-[10px] text-[#888888] font-bold mr-2">RAD</span>
-                                    <input
-                                        type="number"
-                                        value={selected.props.borderRadius || 0}
-                                        onChange={(e) => setProp('borderRadius', parseInt(e.target.value) || 0)}
-                                        className="bg-transparent border-none text-center text-[12px] font-black w-8 outline-none"
-                                    />
-                                </div>
-                                <div className="flex items-center bg-gray-50 rounded-xl px-2 h-9">
-                                    <span className="text-[10px] text-[#888888] font-bold mr-2">BORD</span>
-                                    <input
-                                        type="number"
-                                        value={selected.props.borderWidth || 0}
-                                        onChange={(e) => setProp('borderWidth', parseInt(e.target.value) || 0)}
-                                        className="bg-transparent border-none text-center text-[12px] font-black w-8 outline-none"
-                                    />
-                                </div>
-                                {isContainer && (
-                                    <>
+                            {/* Container primary strip: PAD, GAP, direction, alignment, height */}
+                            {isContainer && (
+                                <>
+                                    <div className="flex items-center gap-1.5 px-2">
                                         <div className="flex items-center bg-gray-50 rounded-xl px-2 h-9">
                                             <span className="text-[10px] text-[#888888] font-bold mr-2">PAD</span>
                                             <input
@@ -417,47 +623,7 @@ export const ContextualToolbar = ({
                                                 className="bg-transparent border-none text-center text-[12px] font-black w-8 outline-none"
                                             />
                                         </div>
-                                        <button
-                                            onClick={() => onOpenColorPicker(selected.id, 'borderColor', selected.props.borderColor || '#BBBFCA')}
-                                            className="w-7 h-7 rounded-lg border border-[#E5E5E5] hover:border-[#BBBFCA] shadow-sm transition-all relative overflow-hidden flex-shrink-0"
-                                            title="Cor da borda"
-                                            style={{ background: selected.props.borderColor || '#BBBFCA' }}
-                                        />
-                                    </>
-                                )}
-                            </div>
-
-                            <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
-
-                            {/* Direction/Flex (For Container) */}
-                            {isContainer && (
-                                <>
-                                    <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
-
-                                    {/* Shadow cycle button */}
-                                    {(() => {
-                                        const currentShadow = selected.props.boxShadow || 'none';
-                                        const shadowIdx = SHADOW_PRESETS.indexOf(currentShadow as any);
-                                        const shadowLabel = shadowIdx === 1 ? 'Soft' : shadowIdx === 2 ? 'Strong' : 'None';
-                                        const hasShadow = shadowIdx > 0;
-                                        return (
-                                            <button
-                                                onClick={() => {
-                                                    const next = SHADOW_PRESETS[(shadowIdx < 0 ? 0 : shadowIdx + 1) % SHADOW_PRESETS.length];
-                                                    setProp('boxShadow', next);
-                                                }}
-                                                className={cn(
-                                                    "h-9 px-2.5 flex items-center gap-1.5 rounded-xl text-[10px] font-bold transition-all",
-                                                    hasShadow ? "bg-blue-50 text-[#0D99FF]" : "text-[#888888] hover:bg-gray-50"
-                                                )}
-                                                title="Clique para alternar sombra"
-                                            >
-                                                <Square size={12} className={hasShadow ? "drop-shadow-md" : ""} />
-                                                <span>SHD</span>
-                                                {hasShadow && <span className="text-[9px] opacity-70">{shadowLabel}</span>}
-                                            </button>
-                                        );
-                                    })()}
+                                    </div>
 
                                     <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
 
@@ -497,77 +663,19 @@ export const ContextualToolbar = ({
 
                                     <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
 
-                                    {/* Display: Flex / Grid toggle */}
-                                    <div className="flex bg-gray-50 rounded-xl p-0.5 h-9">
-                                        <button
-                                            onClick={() => setProp('display', 'flex')}
-                                            className={cn(
-                                                "h-8 px-2.5 text-[10px] font-bold rounded-lg transition-all",
-                                                (!selected.props.display || selected.props.display === 'flex') ? "bg-white shadow-sm text-[#0D99FF]" : "text-[#888888] hover:text-[#333333]"
-                                            )}
-                                            title="Layout Flex"
-                                        >Flex</button>
-                                        <button
-                                            onClick={() => {
-                                                setProp('display', 'grid');
-                                                if (!selected.props.gridTemplateColumns) {
-                                                    setProp('gridTemplateColumns', 'repeat(2, 1fr)');
-                                                }
-                                            }}
-                                            className={cn(
-                                                "h-8 px-2.5 text-[10px] font-bold rounded-lg transition-all",
-                                                selected.props.display === 'grid' ? "bg-white shadow-sm text-[#0D99FF]" : "text-[#888888] hover:text-[#333333]"
-                                            )}
-                                            title="Layout Grid"
-                                        >Grid</button>
-                                    </div>
-
-                                    {/* Grid column stepper (visible only in grid mode) */}
-                                    {selected.props.display === 'grid' && (() => {
-                                        const cols = getGridColCount(selected.props.gridTemplateColumns || '');
-                                        return (
-                                            <div className="flex items-center bg-gray-50 rounded-xl px-0.5 h-9 ml-1">
-                                                <button
-                                                    onClick={() => cols > 1 && setProp('gridTemplateColumns', `repeat(${cols - 1}, 1fr)`)}
-                                                    disabled={cols <= 1}
-                                                    className="w-7 h-8 flex items-center justify-center hover:bg-white hover:shadow-sm rounded-lg transition-all disabled:opacity-30"
-                                                ><Minus size={11} /></button>
-                                                <span className="w-5 text-center text-[12px] font-black text-[#333333]">{cols}</span>
-                                                <button
-                                                    onClick={() => cols < 6 && setProp('gridTemplateColumns', `repeat(${cols + 1}, 1fr)`)}
-                                                    disabled={cols >= 6}
-                                                    className="w-7 h-8 flex items-center justify-center hover:bg-white hover:shadow-sm rounded-lg transition-all disabled:opacity-30"
-                                                ><Plus size={11} /></button>
-                                            </div>
-                                        );
-                                    })()}
-
-                                    <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
-
-                                    {/* Alignment Controls - Icons match visual appearance */}
+                                    {/* Alignment Controls */}
                                     <div className="flex items-center gap-1">
                                         {(() => {
                                             const isRow = selected.props.flexDirection === 'row';
 
-                                            // Icon visual legend (Lucide naming is based on line orientation, not axis):
-                                            // AlignStart/Center/EndHorizontal → bars look like TOP / MIDDLE / BOTTOM
-                                            // AlignStart/Center/EndVertical   → bars look like LEFT / CENTER / RIGHT
-
-                                            // COLUMN main-axis = vertical (justifyContent): use Horizontal icons (top/bottom look)
-                                            // COLUMN cross-axis = horizontal (alignItems):  use Vertical icons   (left/right look)
-                                            // ROW main-axis = horizontal (justifyContent):  use Vertical icons   (left/right look)
-                                            // ROW cross-axis = vertical (alignItems):       use Horizontal icons (top/bottom look)
-
                                             const mainAxisButtons = isRow
                                                 ? [
-                                                    // ROW main-axis = horizontal → Vertical icons (left/right)
                                                     { icon: AlignStartVertical, value: 'flex-start', label: 'Esquerda' },
                                                     { icon: AlignCenterVertical, value: 'center', label: 'Centro' },
                                                     { icon: AlignEndVertical, value: 'flex-end', label: 'Direita' },
                                                     { icon: SeparatorHorizontal, value: 'space-between', label: 'Distribuir' },
                                                 ]
                                                 : [
-                                                    // COLUMN main-axis = vertical → Horizontal icons (top/bottom)
                                                     { icon: AlignStartHorizontal, value: 'flex-start', label: 'Topo' },
                                                     { icon: AlignCenterHorizontal, value: 'center', label: 'Centro' },
                                                     { icon: AlignEndHorizontal, value: 'flex-end', label: 'Base' },
@@ -576,14 +684,12 @@ export const ContextualToolbar = ({
 
                                             const crossAxisButtons = isRow
                                                 ? [
-                                                    // ROW cross-axis = vertical → Horizontal icons (top/bottom)
                                                     { icon: AlignStartHorizontal, value: 'flex-start', label: 'Topo' },
                                                     { icon: AlignCenterHorizontal, value: 'center', label: 'Centro' },
                                                     { icon: AlignEndHorizontal, value: 'flex-end', label: 'Base' },
                                                     { icon: StretchVertical, value: 'stretch', label: 'Esticar' },
                                                 ]
                                                 : [
-                                                    // COLUMN cross-axis = horizontal → Vertical icons (left/right)
                                                     { icon: AlignStartVertical, value: 'flex-start', label: 'Esquerda' },
                                                     { icon: AlignCenterVertical, value: 'center', label: 'Centro' },
                                                     { icon: AlignEndVertical, value: 'flex-end', label: 'Direita' },
@@ -597,7 +703,6 @@ export const ContextualToolbar = ({
 
                                             return (
                                                 <>
-                                                    {/* Main-axis group */}
                                                     <div className="flex bg-gray-50 rounded-xl p-0.5 h-9">
                                                         {mainAxisButtons.map((btn) => {
                                                             const isActive = (selected.props[mainProp] || 'center') === btn.value;
@@ -617,7 +722,6 @@ export const ContextualToolbar = ({
                                                         })}
                                                     </div>
 
-                                                    {/* Cross-axis group */}
                                                     <div className="flex bg-gray-50 rounded-xl p-0.5 h-9">
                                                         {crossAxisButtons.map((btn) => {
                                                             const isActive = (selected.props[crossProp] || 'center') === btn.value;
@@ -682,63 +786,19 @@ export const ContextualToolbar = ({
                                         );
                                     })()}
 
-                                    {/* FX button + popover */}
-                                    <div className="relative ml-1" ref={fxRef}>
+                                    {/* ⚙️ Settings overflow panel button */}
+                                    <div className="relative ml-1" ref={settingsRef}>
                                         <button
-                                            onClick={() => setIsFxOpen(v => !v)}
+                                            onClick={() => { setIsSettingsOpen(v => !v); if (isSettingsOpen) { setIsSavingBlock(false); setBlockName(''); } }}
                                             className={cn(
                                                 "h-9 w-9 flex items-center justify-center rounded-xl transition-all",
-                                                isFxOpen ? "bg-blue-50 text-[#0D99FF]" : "text-[#888888] hover:bg-gray-50"
+                                                isSettingsOpen ? "bg-blue-50 text-[#0D99FF]" : "text-[#888888] hover:bg-gray-50"
                                             )}
-                                            title="Efeitos (blur, imagem de fundo, opacidade)"
+                                            title="Configurações secundárias"
                                         >
-                                            <MoreHorizontal size={16} />
+                                            <SlidersHorizontal size={16} />
                                         </button>
-                                        {isFxOpen && (
-                                            <div className="absolute top-full mt-2 right-0 bg-white border border-[#E5E5E5] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] p-3 z-50 w-60 space-y-3">
-                                                {/* Backdrop Blur */}
-                                                <div>
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider">Blur de fundo</span>
-                                                        <span className="text-[10px] font-bold text-[#333333]">{selected.props.backdropBlur || 0}px</span>
-                                                    </div>
-                                                    <input
-                                                        type="range"
-                                                        min={0}
-                                                        max={40}
-                                                        value={selected.props.backdropBlur || 0}
-                                                        onChange={(e) => setProp('backdropBlur', parseInt(e.target.value))}
-                                                        className="w-full accent-[#0D99FF]"
-                                                    />
-                                                </div>
-                                                {/* Background Image */}
-                                                <div>
-                                                    <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider block mb-1">Imagem de fundo</span>
-                                                    <input
-                                                        type="text"
-                                                        value={selected.props.backgroundImage || ''}
-                                                        onChange={(e) => setProp('backgroundImage', e.target.value)}
-                                                        placeholder="URL da imagem..."
-                                                        className="w-full bg-[#F5F5F5] border-none rounded-lg px-2.5 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-[#0D99FF]"
-                                                    />
-                                                </div>
-                                                {/* Overlay Opacity */}
-                                                <div>
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider">Opacidade overlay</span>
-                                                        <span className="text-[10px] font-bold text-[#333333]">{selected.props.backgroundOpacity || 0}%</span>
-                                                    </div>
-                                                    <input
-                                                        type="range"
-                                                        min={0}
-                                                        max={100}
-                                                        value={selected.props.backgroundOpacity || 0}
-                                                        onChange={(e) => setProp('backgroundOpacity', parseInt(e.target.value))}
-                                                        className="w-full accent-[#0D99FF]"
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
+                                        {isSettingsOpen && <SettingsPanel />}
                                     </div>
                                 </>
                             )}

@@ -8,7 +8,7 @@ export interface TitleProps {
     text?: string;
     fontSize?: number;
     color?: string;
-    textAlign?: 'left' | 'center' | 'right';
+    textAlign?: 'left' | 'center' | 'right' | 'justify';
     fontWeight?: string;
     fontStyle?: string;
     textDecoration?: string;

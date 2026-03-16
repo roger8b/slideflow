@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useEditor } from '@craftjs/core';
-import { AlignLeft, AlignCenter, AlignRight, Box, Trash2, BookmarkPlus, ChevronDown, ChevronRight, Pencil, Copy } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, Box, Trash2, BookmarkPlus, ChevronDown, ChevronRight, Pencil, Copy, StretchHorizontal, Minimize2 } from 'lucide-react';
 import { saveBlock } from '../../lib/savedBlocks';
 import { setClipboard } from '../../lib/clipboard';
 
@@ -227,16 +227,45 @@ export const SettingsPanel = ({ metadata }: { metadata: any }) => {
 
             {/* --- PROPERTIES ACCORDIONS --- */}
 
-            {/* CONTENT (For Text/Image) */}
-            {selected.name === 'Text' && (
-                <Section title="Text Content">
-                    <textarea
-                        value={selected.props.text}
-                        onChange={(e) => setProp('text', e.target.value)}
-                        className="w-full bg-white border border-[#E5E5E5] focus:border-[#0D99FF] rounded p-2 text-[11px] font-mono outline-none min-h-[100px] resize-y"
-                        placeholder="Content..."
-                    />
-                </Section>
+            {/* CONTENT (For Text/Title) */}
+            {(selected.name === 'Text' || selected.name === 'Title') && (
+                <>
+                    <Section title="Layout do texto">
+                        <div className="space-y-2">
+                            <label className="text-[10px] text-[#888888] font-bold uppercase tracking-wider">Largura da linha</label>
+                            <div className="flex bg-[#F5F5F5] rounded-lg p-1">
+                                <button
+                                    onClick={() => setProp('widthMode', 'fill')}
+                                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1 rounded-md text-[10px] font-bold transition-all ${selected.props.widthMode === 'fill' || !selected.props.widthMode ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#888888] hover:text-[#333333]'}`}
+                                >
+                                    <StretchHorizontal size={12} />
+                                    <span>Ocupar tudo</span>
+                                </button>
+                                <button
+                                    onClick={() => setProp('widthMode', 'hug')}
+                                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1 rounded-md text-[10px] font-bold transition-all ${selected.props.widthMode === 'hug' ? 'bg-white shadow-sm text-[#0D99FF]' : 'text-[#888888] hover:text-[#333333]'}`}
+                                >
+                                    <Minimize2 size={12} />
+                                    <span>Ajustar conteúdo</span>
+                                </button>
+                            </div>
+                            <p className="text-[9px] text-[#BBBFCA] leading-tight mt-1">
+                                Use "Ajustar ao conteúdo" para usar ícones ou outros itens na mesma linha.
+                            </p>
+                        </div>
+                    </Section>
+
+                    {selected.name === 'Text' && (
+                        <Section title="Text Content">
+                            <textarea
+                                value={selected.props.text}
+                                onChange={(e) => setProp('text', e.target.value)}
+                                className="w-full bg-white border border-[#E5E5E5] focus:border-[#0D99FF] rounded p-2 text-[11px] font-mono outline-none min-h-[100px] resize-y"
+                                placeholder="Content..."
+                            />
+                        </Section>
+                    )}
+                </>
             )}
 
             {selected.name === 'Image' && (

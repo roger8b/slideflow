@@ -26,6 +26,7 @@ interface EditorContainerProps {
 
 import { motion, AnimatePresence } from 'motion/react';
 import { ColorSidebar } from './ColorSidebar';
+import { FontSidebar } from './FontSidebar';
 
 export const EditorContainer = ({
     isOpen,
@@ -39,6 +40,9 @@ export const EditorContainer = ({
     const [activeColorProp, setActiveColorProp] = React.useState<{ nodeId: string, propKey: string, value: string } | null>(null);
     const [sessionColors, setSessionColors] = React.useState<string[]>([]);
     const [isPickingCustom, setIsPickingCustom] = React.useState(false);
+    const [isFontSidebarOpen, setIsFontSidebarOpen] = React.useState(false);
+    const [activeFontProp, setActiveFontProp] = React.useState<{ nodeId: string; currentFont: string; currentStyle: { fontFamily: string; fontSize: number; fontWeight: string | number } | null } | null>(null);
+    const [serializedNodes, setSerializedNodes] = React.useState<Record<string, any>>({});
 
     // Persistence: Load colors on mount
     useEffect(() => {
@@ -116,7 +120,14 @@ export const EditorContainer = ({
                             onOpenColorPicker={(nodeId, propKey, value) => {
                                 setActiveColorProp({ nodeId, propKey, value });
                                 setIsColorSidebarOpen(true);
+                                setIsFontSidebarOpen(false);
                             }}
+                            onOpenFontPicker={(nodeId, currentFont, currentStyle) => {
+                                setActiveFontProp({ nodeId, currentFont, currentStyle });
+                                setIsFontSidebarOpen(true);
+                                setIsColorSidebarOpen(false);
+                            }}
+                            onSerializedNodesChange={setSerializedNodes}
                         />
 
                         <div className="flex-1 flex overflow-hidden relative">
@@ -154,6 +165,51 @@ export const EditorContainer = ({
 
                             {/* Right Property Inspector: Contextual Settings */}
                             <SettingsPanel metadata={metadata} />
+
+                            {/* Universal Font Sidebar */}
+                            <FontSidebar
+                                isOpen={isFontSidebarOpen}
+                                onClose={() => setIsFontSidebarOpen(false)}
+                                currentFont={activeFontProp?.currentFont || ''}
+                                currentStyle={activeFontProp?.currentStyle || null}
+                                brandFonts={brand.fonts}
+                                serializedNodes={serializedNodes}
+                                onFontSelect={(value, extras) => {
+                                    if (activeFontProp) {
+                                        if (extras) {
+                                            window.dispatchEvent(new CustomEvent('set-editor-props', {
+                                                detail: {
+                                                    nodeId: activeFontProp.nodeId,
+                                                    props: { fontFamily: value, fontWeight: extras.fontWeight, fontStyle: extras.fontStyle }
+                                                }
+                                            }));
+                                        } else {
+                                            window.dispatchEvent(new CustomEvent('set-editor-prop', {
+                                                detail: { nodeId: activeFontProp.nodeId, key: 'fontFamily', value }
+                                            }));
+                                        }
+                                        setActiveFontProp({
+                                            ...activeFontProp,
+                                            currentFont: value,
+                                            currentStyle: extras
+                                                ? { ...activeFontProp.currentStyle, fontFamily: value, fontWeight: extras.fontWeight, fontStyle: extras.fontStyle } as any
+                                                : { ...activeFontProp.currentStyle, fontFamily: value } as any,
+                                        });
+                                    }
+                                }}
+                                onStyleSelect={(style) => {
+                                    if (activeFontProp) {
+                                        window.dispatchEvent(new CustomEvent('set-editor-props', {
+                                            detail: { nodeId: activeFontProp.nodeId, props: style }
+                                        }));
+                                        setActiveFontProp({
+                                            ...activeFontProp,
+                                            currentFont: style.fontFamily,
+                                            currentStyle: style,
+                                        });
+                                    }
+                                }}
+                            />
 
                             {/* Universal Color Sidebar */}
                             <ColorSidebar

@@ -27,6 +27,18 @@ export const ColorSidebar: React.FC<ColorSidebarProps> = ({
     const [currentView, setCurrentView] = useState<'main' | 'gradients' | 'solids'>('main');
     const sidebarRef = useRef<HTMLDivElement>(null);
 
+    // Close on outside click
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleMouseDown = (e: MouseEvent) => {
+            if (sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+                onClose();
+            }
+        };
+        document.addEventListener('mousedown', handleMouseDown);
+        return () => document.removeEventListener('mousedown', handleMouseDown);
+    }, [isOpen, onClose]);
+
     const handleColorClick = (color: string, isCustom = false) => {
         onColorSelect(color);
         if (onColorCommit) onColorCommit(color, isCustom);

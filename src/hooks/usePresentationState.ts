@@ -28,7 +28,16 @@ export const usePresentationState = () => {
 
   const [savedBrandKits, setSavedBrandKits] = useState<any[]>(() => {
     const saved = localStorage.getItem('slideflow-brand-kits');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved brand kits:", e);
+        localStorage.removeItem('slideflow-brand-kits');
+        return [];
+      }
+    }
+    return [];
   });
 
   useEffect(() => {

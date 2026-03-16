@@ -433,73 +433,101 @@ export const ContextualToolbar = ({
                                     </div>
                                     <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
 
-                                    {/* Alignment Controls - Unified Axis Logic */}
+                                    {/* Alignment Controls - Icons match visual appearance */}
                                     <div className="flex items-center gap-1">
-                                        {/* Horizontal Control Group (X-Axis) */}
-                                        <div className="flex bg-gray-50 rounded-xl p-0.5 h-9">
-                                            {[
-                                                { icon: AlignStartHorizontal, value: 'flex-start', label: 'Esquerda' },
-                                                { icon: AlignCenterHorizontal, value: 'center', label: 'Centro' },
-                                                { icon: AlignEndHorizontal, value: 'flex-end', label: 'Direita' },
-                                                selected.props.flexDirection === 'row'
-                                                    ? { icon: SeparatorHorizontal, value: 'space-between', label: 'Distribuir' }
-                                                    : { icon: StretchHorizontal, value: 'stretch', label: 'Esticar' }
-                                            ].map((btn) => {
-                                                const isRow = selected.props.flexDirection === 'row';
-                                                const currentProp = isRow ? (selected.props.justifyContent || 'center') : (selected.props.alignItems || 'center');
-                                                const isActive = currentProp === btn.value;
+                                        {(() => {
+                                            const isRow = selected.props.flexDirection === 'row';
 
-                                                return (
-                                                    <button
-                                                        key={btn.value}
-                                                        onClick={() => {
-                                                            const propName = isRow ? 'justifyContent' : 'alignItems';
-                                                            setProp(propName, btn.value);
-                                                        }}
-                                                        className={cn(
-                                                            "w-8 h-8 flex items-center justify-center rounded-lg transition-all",
-                                                            isActive ? "bg-white shadow-sm text-[#0D99FF]" : "text-[#888888] hover:text-[#333333]"
-                                                        )}
-                                                        title={`Horizontal: ${btn.label}`}
-                                                    >
-                                                        <btn.icon size={14} />
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                                            // Icon visual legend (Lucide naming is based on line orientation, not axis):
+                                            // AlignStart/Center/EndHorizontal → bars look like TOP / MIDDLE / BOTTOM
+                                            // AlignStart/Center/EndVertical   → bars look like LEFT / CENTER / RIGHT
 
-                                        {/* Vertical Control Group (Y-Axis) */}
-                                        <div className="flex bg-gray-50 rounded-xl p-0.5 h-9">
-                                            {[
-                                                { icon: AlignStartVertical, value: 'flex-start', label: 'Topo' },
-                                                { icon: AlignCenterVertical, value: 'center', label: 'Meio' },
-                                                { icon: AlignEndVertical, value: 'flex-end', label: 'Base' },
-                                                selected.props.flexDirection === 'row'
-                                                    ? { icon: StretchVertical, value: 'stretch', label: 'Esticar' }
-                                                    : { icon: SeparatorHorizontal, value: 'space-between', label: 'Distribuir' }
-                                            ].map((btn) => {
-                                                const isRow = selected.props.flexDirection === 'row';
-                                                const currentProp = isRow ? (selected.props.alignItems || 'center') : (selected.props.justifyContent || 'center');
-                                                const isActive = currentProp === btn.value;
+                                            // COLUMN main-axis = vertical (justifyContent): use Horizontal icons (top/bottom look)
+                                            // COLUMN cross-axis = horizontal (alignItems):  use Vertical icons   (left/right look)
+                                            // ROW main-axis = horizontal (justifyContent):  use Vertical icons   (left/right look)
+                                            // ROW cross-axis = vertical (alignItems):       use Horizontal icons (top/bottom look)
 
-                                                return (
-                                                    <button
-                                                        key={btn.value}
-                                                        onClick={() => {
-                                                            const propName = isRow ? 'alignItems' : 'justifyContent';
-                                                            setProp(propName, btn.value);
-                                                        }}
-                                                        className={cn(
-                                                            "w-8 h-8 flex items-center justify-center rounded-lg transition-all",
-                                                            isActive ? "bg-white shadow-sm text-[#0D99FF]" : "text-[#888888] hover:text-[#333333]"
-                                                        )}
-                                                        title={`Vertical: ${btn.label}`}
-                                                    >
-                                                        <btn.icon size={14} />
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                                            const mainAxisButtons = isRow
+                                                ? [
+                                                    // ROW main-axis = horizontal → Vertical icons (left/right)
+                                                    { icon: AlignStartVertical, value: 'flex-start', label: 'Esquerda' },
+                                                    { icon: AlignCenterVertical, value: 'center', label: 'Centro' },
+                                                    { icon: AlignEndVertical, value: 'flex-end', label: 'Direita' },
+                                                    { icon: SeparatorHorizontal, value: 'space-between', label: 'Distribuir' },
+                                                ]
+                                                : [
+                                                    // COLUMN main-axis = vertical → Horizontal icons (top/bottom)
+                                                    { icon: AlignStartHorizontal, value: 'flex-start', label: 'Topo' },
+                                                    { icon: AlignCenterHorizontal, value: 'center', label: 'Centro' },
+                                                    { icon: AlignEndHorizontal, value: 'flex-end', label: 'Base' },
+                                                    { icon: StretchHorizontal, value: 'space-between', label: 'Distribuir' },
+                                                ];
+
+                                            const crossAxisButtons = isRow
+                                                ? [
+                                                    // ROW cross-axis = vertical → Horizontal icons (top/bottom)
+                                                    { icon: AlignStartHorizontal, value: 'flex-start', label: 'Topo' },
+                                                    { icon: AlignCenterHorizontal, value: 'center', label: 'Centro' },
+                                                    { icon: AlignEndHorizontal, value: 'flex-end', label: 'Base' },
+                                                    { icon: StretchVertical, value: 'stretch', label: 'Esticar' },
+                                                ]
+                                                : [
+                                                    // COLUMN cross-axis = horizontal → Vertical icons (left/right)
+                                                    { icon: AlignStartVertical, value: 'flex-start', label: 'Esquerda' },
+                                                    { icon: AlignCenterVertical, value: 'center', label: 'Centro' },
+                                                    { icon: AlignEndVertical, value: 'flex-end', label: 'Direita' },
+                                                    { icon: StretchHorizontal, value: 'stretch', label: 'Esticar' },
+                                                ];
+
+                                            const mainProp = 'justifyContent';
+                                            const crossProp = 'alignItems';
+                                            const mainAxisLabel = isRow ? 'Horizontal' : 'Vertical';
+                                            const crossAxisLabel = isRow ? 'Vertical' : 'Horizontal';
+
+                                            return (
+                                                <>
+                                                    {/* Main-axis group */}
+                                                    <div className="flex bg-gray-50 rounded-xl p-0.5 h-9">
+                                                        {mainAxisButtons.map((btn) => {
+                                                            const isActive = (selected.props[mainProp] || 'center') === btn.value;
+                                                            return (
+                                                                <button
+                                                                    key={`main-${btn.value}`}
+                                                                    onClick={() => setProp(mainProp, btn.value)}
+                                                                    className={cn(
+                                                                        "w-8 h-8 flex items-center justify-center rounded-lg transition-all",
+                                                                        isActive ? "bg-white shadow-sm text-[#0D99FF]" : "text-[#888888] hover:text-[#333333]"
+                                                                    )}
+                                                                    title={`${mainAxisLabel}: ${btn.label}`}
+                                                                >
+                                                                    <btn.icon size={14} />
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    {/* Cross-axis group */}
+                                                    <div className="flex bg-gray-50 rounded-xl p-0.5 h-9">
+                                                        {crossAxisButtons.map((btn) => {
+                                                            const isActive = (selected.props[crossProp] || 'center') === btn.value;
+                                                            return (
+                                                                <button
+                                                                    key={`cross-${btn.value}`}
+                                                                    onClick={() => setProp(crossProp, btn.value)}
+                                                                    className={cn(
+                                                                        "w-8 h-8 flex items-center justify-center rounded-lg transition-all",
+                                                                        isActive ? "bg-white shadow-sm text-[#0D99FF]" : "text-[#888888] hover:text-[#333333]"
+                                                                    )}
+                                                                    title={`${crossAxisLabel}: ${btn.label}`}
+                                                                >
+                                                                    <btn.icon size={14} />
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </>
                             )}

@@ -3,6 +3,8 @@ import { useNode, useEditor } from '@craftjs/core';
 import ContentEditable from 'react-contenteditable';
 import { GripVertical } from 'lucide-react';
 import { cn } from '../../../constants';
+import { TextEffect } from '../../../types/textEffect';
+import { applyTextEffect } from '../../../lib/applyTextEffect';
 
 export interface TitleProps {
     text?: string;
@@ -15,6 +17,7 @@ export interface TitleProps {
     fontFamily?: string;
     background?: string;
     widthMode?: 'fill' | 'hug';
+    textEffect?: TextEffect;
 }
 
 export const Title = ({
@@ -27,7 +30,8 @@ export const Title = ({
     textDecoration = 'none',
     fontFamily = 'var(--brand-font-title)',
     background = 'transparent',
-    widthMode = 'fill'
+    widthMode = 'fill',
+    textEffect,
 }: TitleProps) => {
     const { connectors: { connect, drag }, actions: { setProp }, selected } = useNode((state: any) => ({
         selected: state.events.selected,
@@ -49,6 +53,8 @@ export const Title = ({
         display: isHug ? 'inline-block' : 'block',
     };
 
+    const { textStyles: effectTextStyles, wrapperStyles: effectWrapperStyles } = applyTextEffect(textEffect);
+
     return (
         <div
             ref={(ref) => { if (ref) connect(drag(ref)); }}
@@ -61,7 +67,8 @@ export const Title = ({
             style={{
                 background: background,
                 width: isHug ? 'fit-content' : '100%',
-                maxWidth: '100%'
+                maxWidth: '100%',
+                ...effectWrapperStyles,
             }}
         >
             {enabled && selected && (
@@ -85,7 +92,8 @@ export const Title = ({
                     padding: '4px',
                     width: isHug ? 'fit-content' : '100%',
                     maxWidth: '100%',
-                    ...textStyle
+                    ...textStyle,
+                    ...effectTextStyles,
                 }}
             />
         </div>

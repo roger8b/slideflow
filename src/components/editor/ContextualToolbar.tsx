@@ -39,7 +39,9 @@ import {
     SeparatorHorizontal,
     SlidersHorizontal,
     BookmarkPlus,
+    Sparkles,
 } from 'lucide-react';
+import { TextEffect } from '../../types/textEffect';
 import { AnimatePresence, motion } from 'motion/react';
 import { cn } from '../../constants';
 
@@ -98,11 +100,13 @@ export const ContextualToolbar = ({
     metadata,
     onOpenColorPicker,
     onOpenFontPicker,
+    onOpenEffectsPicker,
     onSerializedNodesChange,
 }: {
     metadata: any;
     onOpenColorPicker: (nodeId: string, propKey: string, value: string) => void;
     onOpenFontPicker?: (nodeId: string, currentFont: string, currentStyle: { fontFamily: string; fontSize: number; fontWeight: string | number } | null) => void;
+    onOpenEffectsPicker?: (nodeId: string, currentEffect: TextEffect | undefined) => void;
     onSerializedNodesChange?: (nodes: Record<string, any>) => void;
 }) => {
     const { actions, selected, query } = useEditor((state, query) => {
@@ -651,6 +655,21 @@ export const ContextualToolbar = ({
                                     </button>
                                 ))}
                             </div>
+
+                            <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
+
+                            <button
+                                onClick={() => onOpenEffectsPicker?.(selected.id, selected.props.textEffect)}
+                                className={cn(
+                                    "w-9 h-9 flex items-center justify-center rounded-xl transition-all",
+                                    selected.props.textEffect && selected.props.textEffect.type !== 'none'
+                                        ? "bg-blue-50 text-[#0D99FF]"
+                                        : "text-[#888888] hover:bg-gray-50"
+                                )}
+                                title="Efeitos de texto"
+                            >
+                                <Sparkles size={16} />
+                            </button>
                         </>
                     )}
 

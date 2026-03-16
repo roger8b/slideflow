@@ -26,6 +26,8 @@ interface EditorContainerProps {
 import { motion, AnimatePresence } from 'motion/react';
 import { ColorSidebar } from './ColorSidebar';
 import { FontSidebar } from './FontSidebar';
+import { TextEffectsSidebar } from './TextEffectsSidebar';
+import { TextEffect } from '../../types/textEffect';
 
 export const EditorContainer = ({
     isOpen,
@@ -42,6 +44,8 @@ export const EditorContainer = ({
     const [isFontSidebarOpen, setIsFontSidebarOpen] = React.useState(false);
     const [activeFontProp, setActiveFontProp] = React.useState<{ nodeId: string; currentFont: string; currentStyle: { fontFamily: string; fontSize: number; fontWeight: string | number } | null } | null>(null);
     const [serializedNodes, setSerializedNodes] = React.useState<Record<string, any>>({});
+    const [isEffectsSidebarOpen, setIsEffectsSidebarOpen] = React.useState(false);
+    const [activeEffectProp, setActiveEffectProp] = React.useState<{ nodeId: string; currentEffect: TextEffect | undefined } | null>(null);
 
     // Persistence: Load colors on mount
     useEffect(() => {
@@ -120,11 +124,19 @@ export const EditorContainer = ({
                                 setActiveColorProp({ nodeId, propKey, value });
                                 setIsColorSidebarOpen(true);
                                 setIsFontSidebarOpen(false);
+                                setIsEffectsSidebarOpen(false);
                             }}
                             onOpenFontPicker={(nodeId, currentFont, currentStyle) => {
                                 setActiveFontProp({ nodeId, currentFont, currentStyle });
                                 setIsFontSidebarOpen(true);
                                 setIsColorSidebarOpen(false);
+                                setIsEffectsSidebarOpen(false);
+                            }}
+                            onOpenEffectsPicker={(nodeId, currentEffect) => {
+                                setActiveEffectProp({ nodeId, currentEffect });
+                                setIsEffectsSidebarOpen(true);
+                                setIsColorSidebarOpen(false);
+                                setIsFontSidebarOpen(false);
                             }}
                             onSerializedNodesChange={setSerializedNodes}
                         />
@@ -203,6 +215,23 @@ export const EditorContainer = ({
                                             currentFont: style.fontFamily,
                                             currentStyle: style,
                                         });
+                                    }
+                                }}
+                            />
+
+                            {/* Text Effects Sidebar */}
+                            <TextEffectsSidebar
+                                isOpen={isEffectsSidebarOpen}
+                                onClose={() => setIsEffectsSidebarOpen(false)}
+                                currentEffect={activeEffectProp?.currentEffect}
+                                brandColors={brand.colors}
+                                documentColors={sessionColors}
+                                onChange={(effect) => {
+                                    if (activeEffectProp) {
+                                        window.dispatchEvent(new CustomEvent('set-editor-prop', {
+                                            detail: { nodeId: activeEffectProp.nodeId, key: 'textEffect', value: effect }
+                                        }));
+                                        setActiveEffectProp({ ...activeEffectProp, currentEffect: effect });
                                     }
                                 }}
                             />

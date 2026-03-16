@@ -5,6 +5,8 @@ import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { GripVertical } from 'lucide-react';
 import { cn } from '../../../constants';
+import { TextEffect } from '../../../types/textEffect';
+import { applyTextEffect } from '../../../lib/applyTextEffect';
 
 export interface TextProps {
     text?: string;
@@ -17,6 +19,7 @@ export interface TextProps {
     textDecoration?: string;
     background?: string;
     widthMode?: 'fill' | 'hug';
+    textEffect?: TextEffect;
 }
 
 export const Text = ({
@@ -29,7 +32,8 @@ export const Text = ({
     fontStyle = 'normal',
     textDecoration = 'none',
     background = 'transparent',
-    widthMode = 'fill'
+    widthMode = 'fill',
+    textEffect,
 }: TextProps) => {
     const { connectors: { connect, drag }, actions: { setProp }, selected } = useNode((state: any) => ({
         selected: state.events.selected,
@@ -59,6 +63,8 @@ export const Text = ({
         color: color,
     };
 
+    const { textStyles: effectTextStyles, wrapperStyles: effectWrapperStyles } = applyTextEffect(textEffect);
+
     return (
         <div
             ref={(ref: any) => { if (ref) connect(drag(ref)); }}
@@ -71,7 +77,8 @@ export const Text = ({
             style={{
                 background: background,
                 width: isHug ? 'fit-content' : '100%',
-                maxWidth: '100%'
+                maxWidth: '100%',
+                ...effectWrapperStyles,
             }}
         >
             {enabled && selected && (
@@ -111,7 +118,8 @@ export const Text = ({
                             fontFamily: isEditing ? 'monospace' : fontFamily,
                             width: isHug ? 'max-content' : '100%',
                             minWidth: isHug ? '12ch' : '100%',
-                            maxWidth: '100%'
+                            maxWidth: '100%',
+                            ...effectTextStyles,
                         }}
                     />
                 ) : (
@@ -130,7 +138,8 @@ export const Text = ({
                             minHeight: '1em',
                             width: isHug ? 'fit-content' : '100%',
                             maxWidth: '100%',
-                            display: isHug ? 'inline-block' : 'block'
+                            display: isHug ? 'inline-block' : 'block',
+                            ...effectTextStyles,
                         }}
                     >
                         <ReactMarkdown

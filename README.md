@@ -23,11 +23,11 @@ Visualize uma demo no AI Studio: https://ai.studio/apps/b609b949-e583-4d7a-a33a-
    ```bash
    npm install
    ```
-2. Defina a chave do **Gemini API** no arquivo `.env` ou `.env.local` copiando do exemplo:
+2. Defina a chave do **Gemini API** no arquivo `.env.local` copiando do exemplo:
    ```bash
    cp .env.example .env.local
    ```
-   E atualize a variável `GEMINI_API_KEY=sua_chave_aqui` no arquivo.
+   E atualize a variável `GEMINI_API_KEY=sua_chave_aqui` dentro de `.env.local`.
 3. Inicie o servidor de desenvolvimento:
    ```bash
    npm run dev

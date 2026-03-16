@@ -11,7 +11,7 @@ As apresentações tradicionais são rígidas. O Slideflow trata ideias como **n
 
 ### 1. O Motor de Núcleo Duplo
 - **Macro-Nível (React Flow):** Gerencia a topologia da apresentação. Ele lida com as transições de slides, lógica de ramificações (bifurcações) e o relacionamento espacial entre as ideias.
-- **Micro-Nível (Craft.js):** Um editor *drag-and-drop* de alta performance embutido em cada nó. Ele serializa o conteúdo do slide em uma estrutura JSON encadeada, permitindo altíssima flexibilidade no design do layout de cada peça de conteúdo.
+- **Micro-nível (Craft.js):** um editor *drag-and-drop* de alto desempenho embutido em cada nó, que serializa o conteúdo do slide em uma estrutura JSON encadeada, permitindo alta flexibilidade no design dos layouts.
 - **Padronização de Tela (Canvas):** Os slides são travados em uma **proporção 16:9 (960x540)** para assegurar a consistência visual da renderização em diferentes modos de visualização e exportação.
 
 ### 2. Design Aumentado por IA (Gemini 2.5)
@@ -41,7 +41,7 @@ A arquitetura do Slideflow possui um sistema e motor de temas centralizados que 
 - **Teclas de Atalhos:** Optimizadas para produtividade e com um largo escopo de chaves curtas para controle e edição eficientes de acessibilidade (atalhos diretos).
 
 ### 📽️ A Experiência do Player (Modo de Apresentação)
-- **Visualização Imersiva:** Modo tela cheia renderizado e flexível às proporções das bases do projeto, sendo escalável via font-size base configurável.
+- **Visualização Imersiva:** Renderização em tela cheia que se adapta de forma flexível às proporções base do projeto, permitindo o redimensionamento por meio da configuração do tamanho de fonte base.
 - **Navegação de Natureza Não Linear:** Navegue através dos atalhos "Próximo / Voltar" ou acione lógicas pontuais ao acionar opções com interconexões a rotas adjacentes (bifurcações de escolhas de conteúdo de grafo).
 - **Transições e Orquestrações Vivas:** Uma integração complexa entre o motion/react (Framer) ativada e controlando nós para as exibições interconectadas dos caminhos.
 
@@ -56,7 +56,7 @@ O caminho traçado pelo Slideflow concentrou a base e seu valor a cada iteraçã
 - **Fase 3: Incremento de Conteúdos:** Acréscimo do interpretador de suporte em base ao **Markdown** junto ao componente tipográfico associado às lógicas modulares nativas em painéis ou fluxos com as caixas textuais.
 - **Fase 4: Identidade Avançada e Implementações baseadas no Gemini (IA):** Integração finalizada das inteligências baseadas pela estrutura em prompt generativo no Google AI com a liberação global das paletas e **Sistema de Tema Global**.
 - **Fase 5: Modernizações Finas e Refinamentos Baseados em Experiência do Autor:** Modernizou a interação interna lançando o recurso aprimorado da **Barra de Tarefas Flutuantes de Camadas (Layers)**, da barra modular (*floating toolbar*) em cada interação contextual aprimorando substancialmente e abrindo campo limpo às opções.
-- **Fase 6: Opções Flexbox a Nível Produção:** Renovação sistemática das tabelas interativas das identidades dos Brand Kits (Kits Globais Base de Marca). Atualizações para controle manual e visual (Texto de contraste e caixas duplas configuráveis nos background base). Refino complexo estabilizando Flexbox para design-time contra presentation mode render final.
+- **Fase 6: Opções Flexbox a Nível Produção:** Renovação sistemática das tabelas interativas das identidades dos Brand Kits (Kits Globais Base de Marca). Atualizações para controle manual e visual (Texto de contraste e caixas duplas configuráveis no plano de fundo). Refino complexo estabilizando Flexbox para design-time contra presentation mode render final.
 - **Fase 7: Efeitos de Texto: Introdução de efeitos textuais granulares e barra lateral (sidebar) focada no controle central e intuitivo das formatações gráficas aos atributos Texto/Título e dos nós do Craft.**
 
 ---
@@ -72,6 +72,11 @@ Para que tudo converta sem vazamentos de formato ou padrões, os nodes se comuni
     "theme": "modern",
     "baseFontSize": 32,
     "createdAt": "2026-03-14T..."
+  },
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
   },
   "nodes": [
     {

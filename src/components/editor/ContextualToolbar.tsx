@@ -35,7 +35,8 @@ import {
     AlignStartHorizontal,
     AlignCenterHorizontal,
     AlignEndHorizontal,
-    SeparatorHorizontal
+    SeparatorHorizontal,
+    MoreHorizontal
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { cn } from '../../constants';
@@ -73,9 +74,23 @@ export const ContextualToolbar = ({
 
     const [isRenaming, setIsRenaming] = useState(false);
     const renameInputRef = useRef<HTMLInputElement>(null);
+    const [isFxOpen, setIsFxOpen] = useState(false);
+    const fxRef = useRef<HTMLDivElement>(null);
 
     // Close rename if selection changes
-    useEffect(() => { setIsRenaming(false); }, [selected?.id]);
+    useEffect(() => { setIsRenaming(false); setIsFxOpen(false); }, [selected?.id]);
+
+    // Close FX popover on outside click
+    useEffect(() => {
+        if (!isFxOpen) return;
+        const handleMouseDown = (e: MouseEvent) => {
+            if (fxRef.current && !fxRef.current.contains(e.target as Node)) {
+                setIsFxOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleMouseDown);
+        return () => document.removeEventListener('mousedown', handleMouseDown);
+    }, [isFxOpen]);
 
     useEffect(() => {
         if (isRenaming) renameInputRef.current?.select();
@@ -168,6 +183,17 @@ export const ContextualToolbar = ({
             return fontValue.replace(/['"]/g, '').split(',')[0].trim() || 'Fonte';
         }
         return value.replace(/['"]/g, '').split(',')[0].trim() || 'Fonte';
+    };
+
+    const SHADOW_PRESETS = ['none', '0 4px 12px rgba(0,0,0,0.12)', '0 10px 30px rgba(0,0,0,0.25)'] as const;
+
+    const getGridColCount = (gridTemplateColumns: string): number => {
+        if (!gridTemplateColumns) return 2;
+        if (gridTemplateColumns.includes('repeat')) {
+            const match = gridTemplateColumns.match(/repeat\((\d+)/);
+            return match ? parseInt(match[1]) : 2;
+        }
+        return gridTemplateColumns.split(' ').filter(Boolean).length || 2;
     };
 
     const getHexFromVar = (val: string) => {
@@ -381,15 +407,23 @@ export const ContextualToolbar = ({
                                     />
                                 </div>
                                 {isContainer && (
-                                    <div className="flex items-center bg-gray-50 rounded-xl px-2 h-9">
-                                        <span className="text-[10px] text-[#888888] font-bold mr-2">PAD</span>
-                                        <input
-                                            type="number"
-                                            value={selected.props.padding || 0}
-                                            onChange={(e) => setProp('padding', parseInt(e.target.value) || 0)}
-                                            className="bg-transparent border-none text-center text-[12px] font-black w-8 outline-none"
+                                    <>
+                                        <div className="flex items-center bg-gray-50 rounded-xl px-2 h-9">
+                                            <span className="text-[10px] text-[#888888] font-bold mr-2">PAD</span>
+                                            <input
+                                                type="number"
+                                                value={selected.props.padding || 0}
+                                                onChange={(e) => setProp('padding', parseInt(e.target.value) || 0)}
+                                                className="bg-transparent border-none text-center text-[12px] font-black w-8 outline-none"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => onOpenColorPicker(selected.id, 'borderColor', selected.props.borderColor || '#BBBFCA')}
+                                            className="w-7 h-7 rounded-lg border border-[#E5E5E5] hover:border-[#BBBFCA] shadow-sm transition-all relative overflow-hidden flex-shrink-0"
+                                            title="Cor da borda"
+                                            style={{ background: selected.props.borderColor || '#BBBFCA' }}
                                         />
-                                    </div>
+                                    </>
                                 )}
                             </div>
 
@@ -399,6 +433,35 @@ export const ContextualToolbar = ({
                             {isContainer && (
                                 <>
                                     <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
+
+                                    {/* Shadow cycle button */}
+                                    {(() => {
+                                        const currentShadow = selected.props.boxShadow || 'none';
+                                        const shadowIdx = SHADOW_PRESETS.indexOf(currentShadow as any);
+                                        const shadowLabel = shadowIdx === 1 ? 'Soft' : shadowIdx === 2 ? 'Strong' : 'None';
+                                        const hasShadow = shadowIdx > 0;
+                                        return (
+                                            <button
+                                                onClick={() => {
+                                                    const next = SHADOW_PRESETS[(shadowIdx < 0 ? 0 : shadowIdx + 1) % SHADOW_PRESETS.length];
+                                                    setProp('boxShadow', next);
+                                                }}
+                                                className={cn(
+                                                    "h-9 px-2.5 flex items-center gap-1.5 rounded-xl text-[10px] font-bold transition-all",
+                                                    hasShadow ? "bg-blue-50 text-[#0D99FF]" : "text-[#888888] hover:bg-gray-50"
+                                                )}
+                                                title="Clique para alternar sombra"
+                                            >
+                                                <Square size={12} className={hasShadow ? "drop-shadow-md" : ""} />
+                                                <span>SHD</span>
+                                                {hasShadow && <span className="text-[9px] opacity-70">{shadowLabel}</span>}
+                                            </button>
+                                        );
+                                    })()}
+
+                                    <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
+
+                                    {/* Flex direction toggle */}
                                     <div className="flex bg-gray-50 rounded-xl p-0.5 h-9">
                                         <button
                                             onClick={() => setProp('flexDirection', 'column')}
@@ -431,6 +494,54 @@ export const ContextualToolbar = ({
                                             className="bg-transparent border-none text-center text-[12px] font-black w-8 outline-none"
                                         />
                                     </div>
+
+                                    <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
+
+                                    {/* Display: Flex / Grid toggle */}
+                                    <div className="flex bg-gray-50 rounded-xl p-0.5 h-9">
+                                        <button
+                                            onClick={() => setProp('display', 'flex')}
+                                            className={cn(
+                                                "h-8 px-2.5 text-[10px] font-bold rounded-lg transition-all",
+                                                (!selected.props.display || selected.props.display === 'flex') ? "bg-white shadow-sm text-[#0D99FF]" : "text-[#888888] hover:text-[#333333]"
+                                            )}
+                                            title="Layout Flex"
+                                        >Flex</button>
+                                        <button
+                                            onClick={() => {
+                                                setProp('display', 'grid');
+                                                if (!selected.props.gridTemplateColumns) {
+                                                    setProp('gridTemplateColumns', 'repeat(2, 1fr)');
+                                                }
+                                            }}
+                                            className={cn(
+                                                "h-8 px-2.5 text-[10px] font-bold rounded-lg transition-all",
+                                                selected.props.display === 'grid' ? "bg-white shadow-sm text-[#0D99FF]" : "text-[#888888] hover:text-[#333333]"
+                                            )}
+                                            title="Layout Grid"
+                                        >Grid</button>
+                                    </div>
+
+                                    {/* Grid column stepper (visible only in grid mode) */}
+                                    {selected.props.display === 'grid' && (() => {
+                                        const cols = getGridColCount(selected.props.gridTemplateColumns || '');
+                                        return (
+                                            <div className="flex items-center bg-gray-50 rounded-xl px-0.5 h-9 ml-1">
+                                                <button
+                                                    onClick={() => cols > 1 && setProp('gridTemplateColumns', `repeat(${cols - 1}, 1fr)`)}
+                                                    disabled={cols <= 1}
+                                                    className="w-7 h-8 flex items-center justify-center hover:bg-white hover:shadow-sm rounded-lg transition-all disabled:opacity-30"
+                                                ><Minus size={11} /></button>
+                                                <span className="w-5 text-center text-[12px] font-black text-[#333333]">{cols}</span>
+                                                <button
+                                                    onClick={() => cols < 6 && setProp('gridTemplateColumns', `repeat(${cols + 1}, 1fr)`)}
+                                                    disabled={cols >= 6}
+                                                    className="w-7 h-8 flex items-center justify-center hover:bg-white hover:shadow-sm rounded-lg transition-all disabled:opacity-30"
+                                                ><Plus size={11} /></button>
+                                            </div>
+                                        );
+                                    })()}
+
                                     <div className="w-[1px] h-6 bg-[#E5E5E5] mx-1"></div>
 
                                     {/* Alignment Controls - Icons match visual appearance */}
@@ -528,6 +639,65 @@ export const ContextualToolbar = ({
                                                 </>
                                             );
                                         })()}
+                                    </div>
+
+                                    {/* FX button + popover */}
+                                    <div className="relative ml-1" ref={fxRef}>
+                                        <button
+                                            onClick={() => setIsFxOpen(v => !v)}
+                                            className={cn(
+                                                "h-9 w-9 flex items-center justify-center rounded-xl transition-all",
+                                                isFxOpen ? "bg-blue-50 text-[#0D99FF]" : "text-[#888888] hover:bg-gray-50"
+                                            )}
+                                            title="Efeitos (blur, imagem de fundo, opacidade)"
+                                        >
+                                            <MoreHorizontal size={16} />
+                                        </button>
+                                        {isFxOpen && (
+                                            <div className="absolute top-full mt-2 right-0 bg-white border border-[#E5E5E5] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] p-3 z-50 w-60 space-y-3">
+                                                {/* Backdrop Blur */}
+                                                <div>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider">Blur de fundo</span>
+                                                        <span className="text-[10px] font-bold text-[#333333]">{selected.props.backdropBlur || 0}px</span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min={0}
+                                                        max={40}
+                                                        value={selected.props.backdropBlur || 0}
+                                                        onChange={(e) => setProp('backdropBlur', parseInt(e.target.value))}
+                                                        className="w-full accent-[#0D99FF]"
+                                                    />
+                                                </div>
+                                                {/* Background Image */}
+                                                <div>
+                                                    <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider block mb-1">Imagem de fundo</span>
+                                                    <input
+                                                        type="text"
+                                                        value={selected.props.backgroundImage || ''}
+                                                        onChange={(e) => setProp('backgroundImage', e.target.value)}
+                                                        placeholder="URL da imagem..."
+                                                        className="w-full bg-[#F5F5F5] border-none rounded-lg px-2.5 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-[#0D99FF]"
+                                                    />
+                                                </div>
+                                                {/* Overlay Opacity */}
+                                                <div>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider">Opacidade overlay</span>
+                                                        <span className="text-[10px] font-bold text-[#333333]">{selected.props.backgroundOpacity || 0}%</span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min={0}
+                                                        max={100}
+                                                        value={selected.props.backgroundOpacity || 0}
+                                                        onChange={(e) => setProp('backgroundOpacity', parseInt(e.target.value))}
+                                                        className="w-full accent-[#0D99FF]"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </>
                             )}

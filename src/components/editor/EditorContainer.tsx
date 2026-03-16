@@ -157,20 +157,13 @@ export const EditorContainer = ({
                                         height: '540px',
                                         minWidth: '960px',
                                         minHeight: '540px',
-                                        aspectRatio: '16/9'
-                                    }}
+                                        aspectRatio: '16/9',
+                                        '--show-grid-overlay': 'var(--grid-visible, 0)'
+                                    } as React.CSSProperties}
                                 >
                                     <Frame json={initialLayout}>
                                         <Element is={Container} padding={40} canvas flex={1} height="100%" />
                                     </Frame>
-
-                                    {/* Global Grid Overlay Support - Controlled via FloatingToolbar status via CSS variable injected in FloatingToolbar or globally here if we use a shared state. But since user wants it in toolbar, I'll use a CSS var trick or shared state. Let's use a simpler approach: always active if var is set. */}
-                                    <style dangerouslySetInnerHTML={{
-                                        __html: `
-                                .artboard-container {
-                                    --show-grid-overlay: var(--grid-visible, 0);
-                                }
-                            `}} />
                                 </div>
                             </div>
 

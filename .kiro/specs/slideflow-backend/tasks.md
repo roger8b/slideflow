@@ -62,7 +62,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Document `CORS_ORIGIN` env var in `server/README.md`
     - _Requirements: 1.6_
 
-- [ ] 2. Checkpoint — FA 001 complete
+- [x] 2. Checkpoint — FA 001 complete
   - Ensure `bun run dev` starts the server on `127.0.0.1:3000`, DB opens, migrations run.
   - Ensure `npm run lint` passes on the frontend (no broken imports from vite.config.ts change).
   - Verify `BEGIN CONCURRENT` is used in at least one write transaction (MVCC active).

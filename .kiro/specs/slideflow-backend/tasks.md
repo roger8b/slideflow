@@ -8,20 +8,20 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
 
 ## Tasks
 
-- [ ] 1. FA 001 — Core backend setup
-  - [ ] 1.1 Scaffold `server/` directory and install dependencies
+- [x] 1. FA 001 — Core backend setup
+  - [x] 1.1 Scaffold `server/` directory and install dependencies
     - Create `server/package.json` with Bun runtime, Hono, tRPC v11, drizzle-orm, @libsql/client, zod
     - Create `server/tsconfig.json` extending root, path alias `@/` → `server/src/`
     - Create `server/src/index.ts` with minimal Hono app that binds to `127.0.0.1:3000`
     - _Requirements: 1.1_
 
-  - [ ] 1.2 Implement `server/src/db/client.ts` with DATABASE_URL abstraction
+  - [x] 1.2 Implement `server/src/db/client.ts` with DATABASE_URL abstraction
     - Read `DATABASE_URL` from `process.env`; log descriptive error and `process.exit(1)` if absent
     - Construct `drizzle(createClient({ url }))` — no hardcoded file paths
     - Export `db` for use by all other modules
     - _Requirements: 1.3, 1.4, 2.4_
 
-  - [ ] 1.3 Define Drizzle schema in `server/src/db/schema.ts`
+  - [x] 1.3 Define Drizzle schema in `server/src/db/schema.ts`
     - Define tables: `users`, `workspaces`, `presentations`, `slides`, `brand_kits`, `global_defaults`, `workspace_defaults`
     - Add `workspace_id` FK (non-null, references `workspaces.id`) on `presentations`, `slides`, `brand_kits`, `workspace_defaults`
     - `workspace_defaults` mirrors `global_defaults` columns (type, name, data) plus `workspace_id`; populated by Onboarding_Worker
@@ -35,12 +35,12 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - File: `server/src/__tests__/schema.test.ts`
     - Inspect Drizzle table definitions programmatically; assert `workspace_id` column present and non-null on all tenant tables
 
-  - [ ] 1.5 Wire migrations into startup and handle migration failure
+  - [x] 1.5 Wire migrations into startup and handle migration failure
     - Call `drizzle-kit push` (or `migrate()`) before the server accepts requests
     - On migration failure: log error and `process.exit(1)`
     - _Requirements: 2.5_
 
-  - [ ] 1.6 Remove `GEMINI_API_KEY` from `vite.config.ts`
+  - [x] 1.6 Remove `GEMINI_API_KEY` from `vite.config.ts`
     - Delete the `define` block entry for `process.env.GEMINI_API_KEY`
     - _Requirements: 1.5, 9.5_
 
@@ -50,13 +50,13 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Test: migration failure → `process.exit(1)` before server binds
     - _Requirements: 1.4, 2.5_
 
-  - [ ] 1.8 Create `server/README.md` with local-only feature documentation
-    - Document the three local-only features: AEGIS encryption, `BEGIN CONCURRENT`, `chmod 600`
+  - [x] 1.8 Create `server/README.md` with local-only feature documentation
+    - Document the three embedded Turso features: AEGIS encryption, `BEGIN CONCURRENT`, `chmod 600`
     - Document their Turso Cloud equivalents and the migration trigger threshold (500 active users OR 10 GB `.db`)
-    - Document the `DATABASE_URL` env var convention: `file:local.db` for dev, `libsql://...turso.io` for prod
+    - Document the `DATABASE_URL` env var convention: `file:local.db` (relative) for dev, `file:/var/data/slideflow/local.db` (absolute) for VPS production
     - _Requirements: 2.7_
 
-  - [ ] 1.9 Add CORS middleware to Hono server
+  - [x] 1.9 Add CORS middleware to Hono server
     - Install `@hono/cors` (or use Hono built-in `cors()`)
     - Mount `app.use(cors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173' }))` as the first middleware in `server/src/index.ts`, before all route handlers
     - Document `CORS_ORIGIN` env var in `server/README.md`
@@ -230,6 +230,21 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
   - Ask the user if questions arise before proceeding to FA 004.
 
 - [ ] 7. FA 004 — VPS deploy: auth, encryption, secrets, infrastructure
+  - [ ] 7.0 Refactor `db/client.ts` from module side-effect to explicit `openDatabase()` function
+    - Replace the module-level `drizzle()` call and `DATABASE_URL` guard with `export async function openDatabase(): Promise<void>`
+    - Export `db` as a module-level variable assigned lazily inside `openDatabase()`
+    - Call `await openDatabase()` in `server/src/index.ts` startup sequence explicitly after `fetchSecretsFromInfisical()`, before `runMigrations()`
+    - This is required so the AEGIS `encryptionKey` (fetched by Infisical in step 1) is available when `createClient()` is called in step 2
+    - Update startup sequence in `index.ts`:
+      ```
+      1. await fetchSecretsFromInfisical()
+      2. await openDatabase()       ← replaces implicit import side-effect
+      3. await runMigrations()
+      4. app.use(cors(...))
+      5. Bun.serve(...)
+      ```
+    - _Pre-requisite for 7.5 (Infisical) and 7.7 (AEGIS encryption)_
+
   - [ ] 7.1 Implement Better-Auth with Google OAuth2
     - Create `server/src/auth/better-auth.ts`: configure Google OAuth2 provider, session cookie settings
     - Register Workspace creation hook that triggers Onboarding_Worker on first login
@@ -298,8 +313,12 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
 - RAG queries must always place `WHERE workspace_id = ?` before `vector_distance_cos` to prevent cross-tenant leakage
 - Reviewer_Agent is a pure Zod validation function — no LLM, no Gemini, no Ollama; deterministic and zero token cost
 - `GEMINI_MODEL` env var configures Gemini model for Starter_Agent, Writer_Agent, Designer_Agent only
-- `server/README.md` documents local-only features (AEGIS, BEGIN CONCURRENT, chmod 600) and migration trigger (500 users / 10 GB)
+- `server/README.md` documents embedded Turso features (AEGIS, BEGIN CONCURRENT, chmod 600) e migration trigger (500 users / 10 GB)
 - `brandKit.migrate` mutation is idempotent — safe to call multiple times without creating duplicates
 - All LlmAgent model selection is configurable via env vars without code changes
+- **Turso é embutido em disco tanto em dev quanto em produção (VPS Hostinger)** — Turso Cloud é migração futura, não alvo de prod atual
+- `DATABASE_URL` em produção VPS DEVE usar caminho absoluto: `file:/var/data/slideflow/local.db`
+- Migração para Turso Cloud requer alterações em `client.ts` e `drizzle.config.ts` (adição de `authToken`) — não é zero-code
+- Task 7.0 (refactor `openDatabase()`) é pré-requisito obrigatório para tasks 7.5 e 7.7 — a estrutura atual de side-effect de importação impede injeção da chave AEGIS antes da abertura do banco
 
 

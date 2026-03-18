@@ -118,9 +118,18 @@ Better-Auth handler, and starts the Hono server on `127.0.0.1:3000`.
 ```
 
 #### `server/src/db/client.ts`
-Constructs the Drizzle client from `DATABASE_URL`. The abstraction is intentionally thin so
-switching from `file:local.db` to `libsql://...turso.io` requires only an env var change.
+Constructs the Drizzle client from `DATABASE_URL`. Turso runs as an embedded file on disk in
+both local development and VPS production (Hostinger) — Turso Cloud is a future migration path,
+not the current production target.
 
+`DATABASE_URL` convention:
+- Development: `file:local.db` (relative, run from `server/`)
+- Production (VPS): `file:/var/data/slideflow/local.db` (absolute path required — relative paths
+  are CWD-dependent and unsafe for process-managed services on VPS)
+- Future Turso Cloud: `libsql://[db].turso.io` (requires `authToken` code change — see migration
+  checklist in `server/README.md`)
+
+**FA 001 implementation** (module side-effect, sufficient until FA 004):
 ```typescript
 import { drizzle } from 'drizzle-orm/libsql'
 import { createClient } from '@libsql/client'
@@ -129,6 +138,21 @@ const url = process.env.DATABASE_URL
 if (!url) { console.error('DATABASE_URL is required'); process.exit(1) }
 
 export const db = drizzle(createClient({ url }))
+```
+
+**FA 004 target** (task 7.0 — required before AEGIS encryption via Infisical):
+The module-level side-effect must be refactored to an explicit `openDatabase()` async function
+so the AEGIS `encryptionKey` fetched from Infisical in startup step 1 is available when
+`createClient()` executes in startup step 2:
+
+```typescript
+export let db: ReturnType<typeof drizzle>
+
+export async function openDatabase(): Promise<void> {
+  const url = process.env.DATABASE_URL
+  if (!url) { console.error('DATABASE_URL is required'); process.exit(1) }
+  db = drizzle(createClient({ url, encryptionKey: process.env.AEGIS_ENCRYPTION_KEY }))
+}
 ```
 
 #### `server/src/trpc/router.ts`
@@ -633,7 +657,7 @@ result SHALL depend exclusively on the Zod Canvas_Schema evaluation.
 
 | Decision | Chosen Approach | Alternative Considered | Justification |
 |----------|----------------|----------------------|---------------|
-| **Database** | **Turso (libSQL) local file for dev, Turso Cloud for prod** | PostgreSQL | Single driver (`@libsql/client`) works for both environments; no Docker dependency for local dev; vector8 native support avoids a separate vector DB. Migration trigger defined: 500 active users OR 10 GB `.db` file size → migrate to Turso Cloud. |
+| **Database** | **Turso (libSQL) embedded em disco — dev local e VPS Hostinger** | PostgreSQL | Driver único (`@libsql/client`) funciona em ambos os ambientes; sem dependência de Docker; suporte nativo a `vector8` elimina banco vetorial separado. **Turso Cloud não é o alvo de produção atual** — o banco roda como arquivo no disco da VPS até o gatilho de migração: 500 usuários ativos OU 10 GB de `.db`. A migração para Turso Cloud exige alterações pontuais em `client.ts` e `drizzle.config.ts` (adição de `authToken`). |
 | **Reviewer Inference** | **Pure Zod validation (no LLM)** | Gemini/Ollama for Reviewer | *Cost & determinism:* The Reviewer_Agent validates structural bounds (960×540) — a numeric constraint that Zod evaluates in microseconds at zero token cost. Using an LLM for this step would be expensive, probabilistic, and slower. `OLLAMA_BASE_URL` applies only to the three creative LlmAgents (Starter, Writer, Designer). |
 | **Secret Manager** | **Infisical (default, switchable to Doppler)** | Hardcoded `.env` | Both Infisical and Doppler are valid per the ADD. The bootstrap module (`server/src/secrets/`) is the single integration point; swapping providers requires changing only that file. Infisical is the default implementation. |
 

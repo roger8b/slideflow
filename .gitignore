@@ -1,11 +1,40 @@
+# Dependencies
 node_modules/
+server/node_modules/
+
+# Build outputs
 build/
 dist/
 coverage/
-.DS_Store
-*.log
+
+# Environment variables
 .env*
 !.env.example
+server/.env*
+!server/.env.example
+
+# Database files (local development only)
+*.db
+*.db-shm
+*.db-wal
+server/*.db
+server/*.db-shm
+server/*.db-wal
+
+# Drizzle migrations (generated, can be regenerated)
+server/drizzle/
+
+# Lock files
+bun.lockb
+bun.lock
+
+# OS files
+.DS_Store
+*.log
+
+# Debug files
 GEMINI-DEBUG.md
 GEMINI-LOG.md
+
+# Powers (Kiro)
 powers

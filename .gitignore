@@ -8,3 +8,4 @@ coverage/
 !.env.example
 GEMINI-DEBUG.md
 GEMINI-LOG.md
+powers

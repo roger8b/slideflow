@@ -68,8 +68,8 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
   - Verify `BEGIN CONCURRENT` is used in at least one write transaction (MVCC active).
   - Ask the user if questions arise before proceeding to FA 002.
 
-- [ ] 3. FA 002 — ADK pipeline + tRPC SSE streaming
-  - [ ] 3.1 Implement Canvas_Schema and CraftJson Zod types
+- [x] 3. FA 002 — ADK pipeline + tRPC SSE streaming
+  - [x] 3.1 Implement Canvas_Schema and CraftJson Zod types
     - Create `server/src/schemas/canvas.ts`: Zod schema enforcing x/y ≤ 960/540, width/height ≤ 960/540, all values ≥ 0
     - Create `server/src/schemas/craftJson.ts`: Zod types for CraftNode (id, type, props, nodes, linkedNodes)
     - _Requirements: 4.1_
@@ -82,7 +82,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Use in-bounds values; assert Zod returns success
     - Minimum 100 iterations
 
-  - [ ] 3.3 Implement ADK agent modules
+  - [x] 3.3 Implement ADK agent modules
     - Create `server/src/agents/starter.ts`: LlmAgent that writes `macro_nodes` to `session.state`
     - Create `server/src/agents/writer.ts`: LlmAgent that reads `macro_nodes`, queries Brand Kit RAG, writes `enriched_content`
     - Create `server/src/agents/designer.ts`: LlmAgent that converts `enriched_content[current_slide_index]` to CraftJson for one slide; assigns each node `id = crypto.randomUUID()`; wraps Gemini call in `Promise.race([call, timeout(LLM_CALL_TIMEOUT_MS)])` — on timeout, throws error treated as iteration failure
@@ -90,7 +90,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Create `server/src/agents/stopChecker.ts`: ADK StopChecker returning `true` when `session.state['valid'] === true`
     - _Requirements: 3.2, 3.3, 3.4, 4.2, 4.3, 4.4, 4.6_
 
-  - [ ] 3.4 Assemble pipeline in `server/src/agents/pipeline.ts`
+  - [x] 3.4 Assemble pipeline in `server/src/agents/pipeline.ts`
     - Compose: SequentialAgent → [Starter_Agent, Writer_Agent], then TypeScript SlideLoopAgent iterating over `enriched_content[]`
     - SlideLoopAgent: for each slide, sets `current_slide_index`, resets `valid`/`zod_errors`, runs LoopAgent(maxIterations: 3, [Designer_Agent, Reviewer_Agent]), appends result to `craft_jsons[]`, emits `slide_complete` SSE event
     - Wire ADK `before_agent_callback` / `after_agent_callback` hooks to emit `progress` SSE events into the AsyncGenerator
@@ -120,7 +120,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Use `fc.string()` for content inputs; assert every node id matches UUID v4 regex and all ids in tree are distinct
     - Minimum 100 iterations
 
-  - [ ] 3.8 Implement tRPC router and `generateLayout` subscription procedure
+  - [x] 3.8 Implement tRPC router and `generateLayout` subscription procedure
     - Create `server/src/trpc/router.ts`: root router composing `generateLayout` and `brandKit` sub-routers
     - Create `server/src/trpc/procedures/generateLayout.ts`: subscription accepting `{ prompt: string }`, reads `workspace_id` from context, runs pipeline, yields typed SSEEvent discriminated union
     - Emit `progress`, `iteration`, `slide_complete`, `complete`, and `error` typed SSE events
@@ -128,7 +128,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Return HTTP 429 with `Retry-After` header when rate limit exceeded
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.8_
 
-  - [ ] 3.9 Implement auth middleware and mount tRPC on Hono
+  - [x] 3.9 Implement auth middleware and mount tRPC on Hono
     - Create `server/src/middleware/auth.ts`: read Better-Auth session cookie, inject `{ userId, workspaceId }` into tRPC context, return HTTP 401 on missing/invalid session
     - Create `server/src/middleware/rateLimiter.ts`: sliding window per workspace, limit configurable via `RATE_LIMIT_REQUESTS_PER_HOUR` env var, HTTP 429 + Retry-After
     - Mount tRPC handler at `/trpc` in `server/src/index.ts`
@@ -147,7 +147,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - P10: mock failure scenarios; assert exactly one `error` event emitted and stream closes
     - Minimum 100 iterations each
 
-  - [ ] 3.11 Refactor `AILayoutGenerator.tsx` to consume tRPC SSE
+  - [x] 3.11 Refactor `AILayoutGenerator.tsx` to consume tRPC SSE
     - Replace `generateAILayout()` import with `trpc.generateLayout.subscribe()`
     - On `progress` event: update loading indicator text with `event.message`
     - On `complete` event: call `actions.deserialize(event.craftJson)`
@@ -163,16 +163,47 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - P16: `fc.string()` for agent/message; assert loading text updated before next render on `progress` event
     - Minimum 100 iterations each
 
-  - [ ] 3.13 Delete `src/lib/geminiService.ts`
+  - [x] 3.13 Delete `src/lib/geminiService.ts`
     - Remove file after `AILayoutGenerator.tsx` no longer imports it
     - Verify no other frontend file imports from `src/lib/geminiService.ts`
     - _Requirements: 9.2_
 
-  - [ ] 3.14 Configure inference model env vars for LlmAgents
+  - [x] 3.14 Configure inference model env vars for LlmAgents
     - Set Gemini 2.5 Flash as the default model for Starter_Agent, Writer_Agent, Designer_Agent via `GEMINI_MODEL` env var
     - Reviewer_Agent does NOT use LLM — no model env var needed for it
     - Document `GEMINI_MODEL` env var in `server/README.md`
     - _Requirements: 11.1, 11.2_
+
+  - [x] 3.16 Create shared Genkit instance in `server/src/lib/ai.ts`
+    - Install `genkitx-ollama` in `server/package.json`
+    - Create `server/src/lib/ai.ts`: export single `ai` instance with conditional provider:
+      - IF `OLLAMA_BASE_URL` is set → `genkit({ plugins: [ollama({ serverAddress: OLLAMA_BASE_URL })] })`
+      - ELSE → `genkit({ plugins: [googleAI()] })`
+    - `GEMINI_MODEL` env var applies to both providers — value is passed directly to `ai.generate({ model })`
+    - _Requirements: 11.5, 11.6_
+
+  - [x] 3.17 Refactor LlmAgents to use shared `lib/ai.ts` instance
+    - In `server/src/agents/starter.ts`: remove `const ai = genkit(...)`, import `ai` from `../lib/ai.js`
+    - In `server/src/agents/writer.ts`: remove `const ai = genkit(...)`, import `ai` from `../lib/ai.js`
+    - In `server/src/agents/designer.ts`: remove `const ai = genkit(...)`, import `ai` from `../lib/ai.js`
+    - No agent file SHALL instantiate its own `genkit()` instance after this task
+    - _Requirements: 11.6_
+
+  - [x] 3.18 Relax `GEMINI_API_KEY` guard in `pipeline.ts` for Ollama mode
+    - Current guard: `if (!process.env.GEMINI_API_KEY) → yield error`
+    - Replace with: skip the `GEMINI_API_KEY` check when `OLLAMA_BASE_URL` is set
+    - Logic: `if (!process.env.OLLAMA_BASE_URL && !process.env.GEMINI_API_KEY) → yield error`
+    - Emit SSE `error` event immediately if both are absent
+    - _Requirements: 11.4, 11.7_
+
+  - [x] 3.19 Document `OLLAMA_BASE_URL` in `server/README.md`
+    - Add `OLLAMA_BASE_URL` to Optional env vars section with description and example
+    - Add "Local Testing with Ollama" section explaining:
+      - How to install Ollama and pull a model (`ollama pull qwen2.5-coder:7b`)
+      - Required `.env` for Ollama mode (`OLLAMA_BASE_URL`, `GEMINI_MODEL`, no `GEMINI_API_KEY`)
+      - Recommended models for JSON generation quality (qwen2.5-coder:7b, llama3.1:8b)
+      - Note: Reviewer_Agent is always Zod-only — zero token cost regardless of provider
+    - _Requirements: 11.4, 11.5_
 
   - [ ]* 3.15 Write property test for Reviewer_Agent determinism (P18)
     - **Property 18: Reviewer_Agent validates deterministically without LLM**
@@ -185,6 +216,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
   - Ensure end-to-end SSE flow works: browser prompt → tRPC subscription → ADK pipeline → Craft.js deserialize.
   - Ensure `src/lib/geminiService.ts` no longer exists.
   - Ensure `npm run lint` passes on both frontend and server.
+  - Ensure Ollama mode works: `OLLAMA_BASE_URL=http://127.0.0.1:11434` + no `GEMINI_API_KEY` → pipeline runs without token spend.
   - Ask the user if questions arise before proceeding to FA 003.
 
 - [ ] 5. FA 003 — Brand Kit RAG integration
@@ -312,10 +344,14 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
 - `vite.config.ts` GEMINI_API_KEY define block is removed in task 1.6 (FA 001)
 - RAG queries must always place `WHERE workspace_id = ?` before `vector_distance_cos` to prevent cross-tenant leakage
 - Reviewer_Agent is a pure Zod validation function — no LLM, no Gemini, no Ollama; deterministic and zero token cost
-- `GEMINI_MODEL` env var configures Gemini model for Starter_Agent, Writer_Agent, Designer_Agent only
+- `GEMINI_MODEL` env var configures the model name for Starter_Agent, Writer_Agent, Designer_Agent — applies to both Gemini and Ollama providers
+- `OLLAMA_BASE_URL` switches all three LlmAgents to local Ollama inference; `GEMINI_API_KEY` is not required when `OLLAMA_BASE_URL` is set — zero token cost for local dev/testing
+- `OLLAMA_BASE_URL` takes precedence over `GEMINI_API_KEY` when both are set
+- Reviewer_Agent is always pure Zod — no LLM, no Gemini, no Ollama; deterministic and zero token cost regardless of provider
+- Single shared Genkit instance in `server/src/lib/ai.ts` — no agent file instantiates its own `genkit()`
 - `server/README.md` documents embedded Turso features (AEGIS, BEGIN CONCURRENT, chmod 600) e migration trigger (500 users / 10 GB)
 - `brandKit.migrate` mutation is idempotent — safe to call multiple times without creating duplicates
-- All LlmAgent model selection is configurable via env vars without code changes
+- All LlmAgent provider and model selection is configurable via env vars without code changes
 - **Turso é embutido em disco tanto em dev quanto em produção (VPS Hostinger)** — Turso Cloud é migração futura, não alvo de prod atual
 - `DATABASE_URL` em produção VPS DEVE usar caminho absoluto: `file:/var/data/slideflow/local.db`
 - Migração para Turso Cloud requer alterações em `client.ts` e `drizzle.config.ts` (adição de `authToken`) — não é zero-code

@@ -1,0 +1,56 @@
+{
+  "metadata": {
+    "title": "React Basics (Backend Generated)",
+    "author": "Anonymous",
+    "version": "1.0.0",
+    "createdAt": "2026-03-18T00:00:00.000Z",
+    "baseFontSize": 16,
+    "theme": "modern",
+    "brand": {
+      "colors": {
+        "primary": "#3B82F6",
+        "secondary": "#8B5CF6",
+        "background": "#F8F5F1",
+        "surface": "#FFFFFF",
+        "text": "#141414"
+      },
+      "fonts": {
+        "title": "Inter, sans-serif",
+        "header": "Inter, sans-serif",
+        "subheader": "Inter, sans-serif",
+        "body": "Inter, sans-serif"
+      },
+      "fontSizes": {
+        "title": 96,
+        "header": 48,
+        "subheader": 24,
+        "body": 18
+      },
+      "fontWeights": {
+        "title": "900",
+        "header": "700",
+        "subheader": "500",
+        "body": "400"
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "node_backend_0",
+      "type": "custom",
+      "position": { "x": 120, "y": 120 },
+      "data": {
+        "type": "custom",
+        "label": "React Basics: Getting Started",
+        "layout": "{\"ROOT\":{\"type\":{\"resolvedName\":\"Container\"},\"isCanvas\":true,\"props\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"alignItems\":\"flex-start\",\"justifyContent\":\"flex-start\",\"background\":\"#F8F5F1\",\"padding\":56,\"gap\":32,\"width\":\"100%\",\"height\":\"100%\"},\"displayName\":\"Container\",\"custom\":{},\"hidden\":false,\"nodes\":[\"7bb5235f-6f74-4a74-b078-d1e9895fb0f1\",\"ad273eb8-e8d1-4b04-98b8-25622200604a\",\"d7749e6c-a5c6-4d70-b2b6-3772e6202eb2\"],\"linkedNodes\":{}},\"7bb5235f-6f74-4a74-b078-d1e9895fb0f1\":{\"type\":{\"resolvedName\":\"Title\"},\"isCanvas\":false,\"props\":{\"text\":\"React Basics: Getting Started\",\"fontSize\":40,\"color\":\"#141414\",\"textAlign\":\"left\",\"fontWeight\":\"bold\"},\"displayName\":\"Title\",\"custom\":{},\"parent\":\"ROOT\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}},\"ad273eb8-e8d1-4b04-98b8-25622200604a\":{\"type\":{\"resolvedName\":\"Container\"},\"isCanvas\":true,\"props\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"alignItems\":\"flex-start\",\"justifyContent\":\"flex-start\",\"background\":\"transparent\",\"padding\":\"0 0\",\"gap\":8,\"width\":\"100%\",\"height\":\"auto\"},\"displayName\":\"Container\",\"custom\":{},\"parent\":\"ROOT\",\"hidden\":false,\"nodes\":[\"43f63ef9-a26f-4671-830f-f380620842ea\",\"a293913a-2f9b-49b3-ab49-f47dadde3b78\",\"4e438d1e-b2f1-4e2f-b04b-96236e70c761\",\"16bfe894-8456-4974-92eb-f93a99a51dbe\"],\"linkedNodes\":{}},\"43f63ef9-a26f-4671-830f-f380620842ea\":{\"type\":{\"resolvedName\":\"Text\"},\"isCanvas\":false,\"props\":{\"text\":\"• React is a JavaScript library for building user interfaces.\",\"fontSize\":17,\"color\":\"#5C5C5C\",\"textAlign\":\"left\",\"fontWeight\":\"normal\",\"lineHeight\":\"1.5\"},\"displayName\":\"Text\",\"custom\":{},\"parent\":\"ad273eb8-e8d1-4b04-98b8-25622200604a\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}},\"a293913a-2f9b-49b3-ab49-f47dadde3b78\":{\"type\":{\"resolvedName\":\"Text\"},\"isCanvas\":false,\"props\":{\"text\":\"• Build dynamic web apps with reusable components.\",\"fontSize\":17,\"color\":\"#5C5C5C\",\"textAlign\":\"left\",\"fontWeight\":\"normal\",\"lineHeight\":\"1.5\"},\"displayName\":\"Text\",\"custom\":{},\"parent\":\"ad273eb8-e8d1-4b04-98b8-25622200604a\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}},\"4e438d1e-b2f1-4e2f-b04b-96236e70c761\":{\"type\":{\"resolvedName\":\"Text\"},\"isCanvas\":false,\"props\":{\"text\":\"• Efficient updates with a virtual DOM.\",\"fontSize\":17,\"color\":\"#5C5C5C\",\"textAlign\":\"left\",\"fontWeight\":\"normal\",\"lineHeight\":\"1.5\"},\"displayName\":\"Text\",\"custom\":{},\"parent\":\"ad273eb8-e8d1-4b04-98b8-25622200604a\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}},\"16bfe894-8456-4974-92eb-f93a99a51dbe\":{\"type\":{\"resolvedName\":\"Text\"},\"isCanvas\":false,\"props\":{\"text\":\"• This presentation covers setup, components, and JSX.\",\"fontSize\":17,\"color\":\"#5C5C5C\",\"textAlign\":\"left\",\"fontWeight\":\"normal\",\"lineHeight\":\"1.5\"},\"displayName\":\"Text\",\"custom\":{},\"parent\":\"ad273eb8-e8d1-4b04-98b8-25622200604a\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}},\"d7749e6c-a5c6-4d70-b2b6-3772e6202eb2\":{\"type\":{\"resolvedName\":\"Container\"},\"isCanvas\":true,\"props\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"alignItems\":\"flex-end\",\"justifyContent\":\"flex-end\",\"background\":\"transparent\",\"padding\":\"0 0\",\"gap\":\"0\",\"width\":\"auto\",\"height\":\"auto\"},\"displayName\":\"Container\",\"custom\":{},\"parent\":\"ROOT\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}"
+      },
+      "width": 960,
+      "height": 540,
+      "selected": false,
+      "dragging": false,
+      "positionAbsolute": { "x": 120, "y": 120 }
+    }
+  ],
+  "edges": [],
+  "viewport": { "x": 75, "y": 75, "zoom": 1 }
+}

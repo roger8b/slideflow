@@ -155,6 +155,36 @@ export async function openDatabase(): Promise<void> {
 }
 ```
 
+#### `server/src/lib/ai.ts`
+Single shared Genkit instance consumed by all three LlmAgents. Provider selection is determined
+at startup by checking `OLLAMA_BASE_URL`:
+
+```typescript
+import { genkit } from 'genkit'
+import { googleAI } from '@genkit-ai/googleai'
+import { ollama } from 'genkitx-ollama'
+
+// Single source of truth for provider selection.
+// - OLLAMA_BASE_URL set  → route all LlmAgent calls to local Ollama (zero token cost)
+// - OLLAMA_BASE_URL absent → use Google AI / Gemini API (requires GEMINI_API_KEY)
+export const ai = process.env.OLLAMA_BASE_URL
+  ? genkit({ plugins: [ollama({ serverAddress: process.env.OLLAMA_BASE_URL })] })
+  : genkit({ plugins: [googleAI()] })
+```
+
+**Provider rules:**
+- `OLLAMA_BASE_URL` set + `GEMINI_API_KEY` absent → valid (Ollama mode, used for local dev/testing)
+- `OLLAMA_BASE_URL` absent + `GEMINI_API_KEY` set → valid (Gemini mode, used for production)
+- Both absent → pipeline emits SSE `error` event immediately; no LLM call issued
+- Both set → `OLLAMA_BASE_URL` takes precedence (Ollama mode)
+
+**Model name convention:**
+- Gemini: `GEMINI_MODEL=googleai/gemini-2.0-flash-exp`
+- Ollama: `GEMINI_MODEL=qwen2.5-coder:7b` (any model pulled via `ollama pull`)
+
+The `GEMINI_MODEL` env var is reused for both providers — its value is passed directly to
+`ai.generate({ model: ... })`. Genkit resolves the model string through the active plugin.
+
 #### `server/src/trpc/router.ts`
 Root tRPC router. Composes `generateLayout` and `brandKit` sub-routers. All procedures pass
 through the `authMiddleware` which validates the Better-Auth session and injects `workspace_id`

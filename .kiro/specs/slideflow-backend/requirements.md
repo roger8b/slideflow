@@ -48,7 +48,7 @@ The migration is organized into four execution phases:
 - **AILayoutGenerator**: The React component in `src/components/editor/AILayoutGenerator.tsx` that sends prompts to the backend and renders SSE progress.
 - **Vite_Config**: The `vite.config.ts` file that currently injects `GEMINI_API_KEY` at build time via `define`.
 - **Gemini_Model**: The Gemini 2.5 Flash model used by all LlmAgents as the default inference provider.
-- **Ollama_Server**: An optional local inference server running at `127.0.0.1:11434`, usable by Reviewer_Agent as a cost-reducing alternative to Gemini API for the critic step.
+- **Ollama_Server**: An optional local inference server running at `127.0.0.1:11434`, usable by the three creative LlmAgents (Starter_Agent, Writer_Agent, Designer_Agent) as a zero-cost alternative to Gemini API during development and testing. The Reviewer_Agent is always a pure Zod function and never uses any LLM inference, including Ollama.
 - **localStorage_Migration**: The one-time process of reading Brand Kit data from the browser's `localStorage` (key: `slideflow-brand-kits`) and persisting it to the `brand_kits` table in Turso_DB during FA 003.
 - **Migration_Trigger**: The operational threshold (500 active users OR 10 GB `.db` file size) at which the team should migrate from embedded Turso to Turso Cloud.
 
@@ -218,10 +218,14 @@ so that no API keys or AI logic remain in the client bundle.
 
 ### Requirement 11: Inference Model and Local Fallback
 
-**User Story:** As an operator, I want to configure which LLM model each agent uses, so that I can optimize cost by using a local model for the critic step without changing application code.
+**User Story:** As an operator, I want to configure which LLM model each agent uses and optionally switch to a local Ollama server, so that I can develop and test without spending Gemini API tokens and optimize cost in production without changing application code.
 
 #### Acceptance Criteria
 
 1. ALL LlmAgents (Starter_Agent, Writer_Agent, Designer_Agent) SHALL use Gemini_Model (Gemini 2.5 Flash) as the default inference model.
 2. THE model selection for each LlmAgent (Starter_Agent, Writer_Agent, Designer_Agent) SHALL be configurable via the `GEMINI_MODEL` environment variable without requiring code changes.
 3. THE Reviewer_Agent is a pure Zod validation function and SHALL NOT use any LLM inference model; it executes deterministically against the Canvas_Schema with no token cost.
+4. IF the `OLLAMA_BASE_URL` environment variable is set, THEN all three LlmAgents (Starter_Agent, Writer_Agent, Designer_Agent) SHALL route their inference calls to the Ollama_Server at that address instead of the Gemini API; `GEMINI_API_KEY` SHALL NOT be required when `OLLAMA_BASE_URL` is set.
+5. THE provider selection (Gemini vs Ollama) SHALL be determined at startup by a single env var (`OLLAMA_BASE_URL`) and SHALL require no application code changes to switch between providers.
+6. THE Backend_Server SHALL expose a single shared Genkit instance from `server/src/lib/ai.ts`; no individual agent file SHALL instantiate its own `genkit()` instance. All LlmAgents SHALL import the shared instance.
+7. WHEN `OLLAMA_BASE_URL` is absent AND `GEMINI_API_KEY` is absent, THE pipeline SHALL emit an SSE `error` event immediately without invoking any LLM call.

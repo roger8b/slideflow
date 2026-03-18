@@ -9,10 +9,15 @@ Bun + Hono backend for Slideflow's AI generation pipeline with tRPC SSE streamin
 - `DATABASE_URL` — Database connection string
   - Development: `file:local.db` (relative, executado a partir de `server/`)
   - Production (VPS Hostinger): `file:/var/data/slideflow/local.db` (caminho absoluto obrigatório)
+- `GEMINI_API_KEY` — Google Gemini API key for LLM inference (required for AI generation)
 
 ### Optional
 
 - `CORS_ORIGIN` — Allowed CORS origin for frontend requests (default: `http://localhost:5173`)
+- `GEMINI_MODEL` — Gemini model to use for Starter_Agent, Writer_Agent, and Designer_Agent (default: `googleai/gemini-2.0-flash-exp`)
+- `OLLAMA_BASE_URL` — Ollama server address for local inference (e.g., `http://127.0.0.1:11434`). When set, all LlmAgents route to Ollama instead of Gemini API. `GEMINI_API_KEY` is not required when using Ollama.
+- `LLM_CALL_TIMEOUT_MS` — Timeout in milliseconds for individual LLM calls (default: `60000`)
+- `RATE_LIMIT_REQUESTS_PER_HOUR` — Maximum requests per workspace per hour (default: `100`)
 
 ## Local Development
 
@@ -21,7 +26,13 @@ Bun + Hono backend for Slideflow's AI generation pipeline with tRPC SSE streamin
 bun install
 
 # Set up environment (desenvolvimento local)
-echo "DATABASE_URL=file:local.db" > .env
+cat > .env << EOF
+DATABASE_URL=file:local.db
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=googleai/gemini-2.0-flash-exp
+LLM_CALL_TIMEOUT_MS=60000
+RATE_LIMIT_REQUESTS_PER_HOUR=100
+EOF
 
 # Run migrations
 bun run db:push
@@ -31,6 +42,93 @@ bun run dev
 ```
 
 The server will start at `http://127.0.0.1:3000`.
+
+## Inference Model Configuration
+
+The backend uses Google Gemini for AI generation. Three agents use LLM inference:
+
+- **Starter_Agent**: Generates slide structure from user prompt
+- **Writer_Agent**: Enriches content with brand context
+- **Designer_Agent**: Converts content to Craft.js layouts
+
+**Reviewer_Agent does NOT use LLM** — it's a pure Zod validation function that runs deterministically at zero token cost.
+
+### Model Selection
+
+Set `GEMINI_MODEL` to configure which Gemini model to use:
+
+```bash
+# Default (recommended for production)
+GEMINI_MODEL=googleai/gemini-2.0-flash-exp
+
+# Alternative models
+GEMINI_MODEL=googleai/gemini-1.5-flash
+GEMINI_MODEL=googleai/gemini-1.5-pro
+```
+
+All three LlmAgents use the same model. The Reviewer_Agent validation step requires no model configuration.
+
+## Local Testing with Ollama
+
+For local development and testing without spending Gemini API tokens, you can use Ollama as a local inference provider. This routes all three LlmAgents (Starter, Writer, Designer) to your local Ollama server at zero cost.
+
+**Reviewer_Agent is always pure Zod validation** — it never uses any LLM (Gemini or Ollama) and executes deterministically at zero token cost regardless of provider.
+
+### Installing Ollama
+
+1. Install Ollama from [ollama.ai](https://ollama.ai) or via package manager:
+   ```bash
+   # macOS
+   brew install ollama
+   
+   # Linux
+   curl -fsSL https://ollama.ai/install.sh | sh
+   ```
+
+2. Start the Ollama server:
+   ```bash
+   ollama serve
+   ```
+   
+   The server will start at `http://127.0.0.1:11434` by default.
+
+3. Pull a model optimized for JSON generation:
+   ```bash
+   # Recommended: Qwen 2.5 Coder (7B) — excellent JSON generation quality
+   ollama pull qwen2.5-coder:7b
+   
+   # Alternative: Llama 3.1 (8B) — good balance of speed and quality
+   ollama pull llama3.1:8b
+   ```
+
+### Configuration for Ollama Mode
+
+```bash
+# .env for Ollama mode (no GEMINI_API_KEY required)
+DATABASE_URL=file:local.db
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+GEMINI_MODEL=ollama/qwen2.5-coder:7b
+LLM_CALL_TIMEOUT_MS=60000
+```
+
+**Important notes:**
+- When `OLLAMA_BASE_URL` is set, `GEMINI_API_KEY` is NOT required
+- The `GEMINI_MODEL` env var must include the `ollama/` prefix when using Ollama (e.g., `ollama/qwen2.5-coder:7b`)
+- For Gemini mode, use the `googleai/` prefix (e.g., `googleai/gemini-2.0-flash-exp`)
+- If both `OLLAMA_BASE_URL` and `GEMINI_API_KEY` are set, Ollama takes precedence
+- If neither is set, the pipeline will emit an SSE error event immediately
+
+### Recommended Models for JSON Generation
+
+| Model | Size | Quality | Speed | Notes |
+|-------|------|---------|-------|-------|
+| `ollama/qwen2.5-coder:7b` | 7B | Excellent | Fast | Best for structured JSON output |
+| `ollama/llama3.1:8b` | 8B | Good | Fast | Solid general-purpose model |
+| `ollama/mistral:7b` | 7B | Good | Very Fast | Lightweight alternative |
+
+**Note:** All Ollama model names must include the `ollama/` prefix in the `GEMINI_MODEL` env var.
+
+**Reviewer_Agent note:** The Reviewer_Agent is always a pure Zod function — it validates Canvas_Schema bounds deterministically without any LLM inference, so it has zero token cost regardless of whether you use Gemini or Ollama for the creative agents.
 
 ## VPS Production Setup (Hostinger)
 

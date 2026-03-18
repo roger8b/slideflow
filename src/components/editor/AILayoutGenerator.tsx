@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useEditor } from '@craftjs/core';
 import { Sparkles, Loader2, Wand2, X } from 'lucide-react';
-import { generateAILayout } from '../../lib/gemini';
+import { trpc } from '../../lib/trpc';
 import { cn } from '../../constants';
 
 interface AILayoutGeneratorProps {
@@ -9,9 +9,10 @@ interface AILayoutGeneratorProps {
 }
 
 export const AILayoutGenerator = ({ variant = 'default' }: AILayoutGeneratorProps) => {
-    const { actions, query } = useEditor();
+    const { actions } = useEditor();
     const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [statusMessage, setStatusMessage] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
 
@@ -20,63 +21,61 @@ export const AILayoutGenerator = ({ variant = 'default' }: AILayoutGeneratorProp
 
         setIsLoading(true);
         setError(null);
+        setStatusMessage('Iniciando geração...');
+
         try {
-            const components = await generateAILayout(prompt);
+            const subscription = trpc.generateLayout.subscribe(
+                { prompt: prompt.trim() },
+                {
+                    onData: (event) => {
+                        switch (event.type) {
+                            case 'progress':
+                                setStatusMessage(event.message);
+                                break;
 
-            const craftNodes: any = {
-                ROOT: {
-                    type: { resolvedName: "Container" },
-                    isCanvas: true,
-                    props: { padding: 40, flex: 1, height: "100%", width: "100%", background: "transparent" },
-                    nodes: [],
-                    linkedNodes: {},
-                    displayName: "Container",
-                    custom: {},
-                    parent: null,
-                    hidden: false
+                            case 'iteration':
+                                setStatusMessage(
+                                    `Slide ${event.slideIndex + 1} - Tentativa ${event.iteration}${
+                                        event.valid ? ' ✓' : '...'
+                                    }`
+                                );
+                                break;
+
+                            case 'slide_complete':
+                                setStatusMessage(`Slide ${event.slideIndex + 1} concluído`);
+                                break;
+
+                            case 'complete':
+                                // Deserialize the first slide's craftJson into the editor
+                                if (event.craftJsons.length > 0) {
+                                    const serialized = JSON.stringify(event.craftJsons[0]);
+                                    actions.deserialize(serialized);
+                                }
+                                setStatusMessage('Layout gerado com sucesso!');
+                                setPrompt('');
+                                if (variant === 'icon') setIsOpen(false);
+                                setIsLoading(false);
+                                break;
+
+                            case 'error':
+                                setError(event.message);
+                                setIsLoading(false);
+                                break;
+                        }
+                    },
+                    onError: (err) => {
+                        console.error('Subscription error:', err);
+                        setError(err.message || 'Falha na conexão com o servidor');
+                        setIsLoading(false);
+                    },
                 }
-            };
+            );
 
-            let nodeCounter = 0;
-            const processComponent = (comp: any, parentId: string) => {
-                const nodeId = `ai_node_${nodeCounter++}`;
-                craftNodes[parentId].nodes.push(nodeId);
-
-                const { type, props, children, ...rest } = comp;
-
-                const componentProps = {
-                    ...(props || {}),
-                    ...rest
-                };
-
-                craftNodes[nodeId] = {
-                    type: { resolvedName: type },
-                    isCanvas: type === "Container",
-                    props: componentProps,
-                    nodes: [],
-                    linkedNodes: {},
-                    parent: parentId,
-                    displayName: type,
-                    custom: {},
-                    hidden: false
-                };
-
-                if (children && Array.isArray(children) && type === "Container") {
-                    children.forEach((child: any) => processComponent(child, nodeId));
-                }
-            };
-
-            components.forEach((comp: any) => processComponent(comp, "ROOT"));
-
-            const serialized = JSON.stringify(craftNodes);
-            actions.deserialize(serialized);
-
-            setPrompt('');
-            if (variant === 'icon') setIsOpen(false);
+            // Store subscription for cleanup if needed
+            return () => subscription.unsubscribe();
         } catch (err: any) {
-            console.error("AI Generation failed:", err);
-            setError(err.message || "Failed to generate layout");
-        } finally {
+            console.error('AI Generation failed:', err);
+            setError(err.message || 'Falha ao gerar layout');
             setIsLoading(false);
         }
     };
@@ -96,7 +95,7 @@ export const AILayoutGenerator = ({ variant = 'default' }: AILayoutGeneratorProp
                     <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl transition-all">
                         <div className="flex flex-col items-center gap-2">
                             <Loader2 className="animate-spin text-[#0D99FF]" size={20} />
-                            <span className="text-[10px] font-bold text-[#0D99FF]">Criando Layout...</span>
+                            <span className="text-[10px] font-bold text-[#0D99FF]">{statusMessage}</span>
                         </div>
                     </div>
                 )}

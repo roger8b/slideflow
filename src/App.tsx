@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   useNodesState,
@@ -9,14 +9,15 @@ import ReactFlow, {
   useReactFlow,
   ReactFlowInstance,
   Edge,
-  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Play, Save, Upload } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 
 import { CustomNode } from './components/CustomNodes';
 import { LeftSidebar } from './components/editor/LeftSidebar';
+import { Header } from './components/layout/Header';
+import { usePresentationState } from './hooks/usePresentationState';
+import { usePresentationActions } from './hooks/usePresentationActions';
 
 // Lazy loaded heavy components
 const EditorContainer = React.lazy(() => import('./components/editor/EditorContainer').then(m => ({ default: m.EditorContainer })));
@@ -33,8 +34,8 @@ import { usePresentationNavigation } from './hooks/usePresentationNavigation';
 import { usePresentationGraph } from './hooks/usePresentationGraph';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
-import { AppMode, SlideNode, PresentationFile, PresentationMetadata } from './types';
-import { THEMES, ThemeType, DEFAULT_BRAND, COLOR_PALETTE } from './constants';
+import { AppMode, SlideNode } from './types';
+import { DEFAULT_BRAND } from './constants';
 
 const initialNodes: SlideNode[] = [
   {
@@ -63,50 +64,12 @@ const SlideFlowContent = () => {
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState('');
 
-  const [metadata, setMetadata] = useState<PresentationMetadata>(() => {
-    const saved = localStorage.getItem('slideflow-metadata');
-    const base = {
-      title: 'New Presentation',
-      author: 'Anonymous',
-      version: '1.0.0',
-      createdAt: new Date().toISOString(),
-      baseFontSize: 32,
-      theme: 'modern',
-      brand: DEFAULT_BRAND,
-    };
-
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return { ...base, ...parsed };
-      } catch (e) {
-        return base;
-      }
-    }
-    return base;
-  });
-
-  const [savedBrandKits, setSavedBrandKits] = useState<any[]>(() => {
-    const saved = localStorage.getItem('slideflow-brand-kits');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('slideflow-brand-kits', JSON.stringify(savedBrandKits));
-  }, [savedBrandKits]);
-
-  const handleSaveBrandKit = useCallback((kit: any) => {
-    const newKit = {
-      ...kit,
-      id: `custom_${Date.now()}`,
-      name: `Meu Estilo ${savedBrandKits.length + 1}`
-    };
-    setSavedBrandKits(prev => [newKit, ...prev]);
-  }, [savedBrandKits]);
-
-  useEffect(() => {
-    localStorage.setItem('slideflow-metadata', JSON.stringify(metadata));
-  }, [metadata]);
+  const {
+    metadata,
+    setMetadata,
+    savedBrandKits,
+    handleSaveBrandKit
+  } = usePresentationState();
 
   const { fitView, setViewport } = useReactFlow();
 
@@ -206,154 +169,24 @@ const SlideFlowContent = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [mode, isBifurcation, outgoingEdges, selectedBranchIndex, nextNodeId, navigateBack, navigateTo, exitPresentation, setSelectedBranchIndex]);
 
+  const {
+    applyThemeToNodes,
+    savePresentation,
+    loadPresentation,
+    loadPresentationTemplate
+  } = usePresentationActions({
+    nodes,
+    setNodes,
+    setEdges,
+    metadata,
+    setMetadata,
+    rfInstance,
+    fitView,
+    setViewport,
+    setActiveSidebarTab,
+    setIsMetadataOpen
+  });
 
-  const applyThemeToNodes = useCallback((themeId: string) => {
-    const theme = THEMES[themeId as ThemeType];
-    if (!theme) return;
-
-    setNodes((nds) => nds.map((node) => {
-      if (!node.data.layout) return node;
-
-      try {
-        const layout = JSON.parse(node.data.layout);
-
-        Object.keys(layout).forEach(key => {
-          const item = layout[key];
-          if (item.type?.resolvedName === 'Title') {
-            item.props.color = theme.colors.title;
-            item.props.fontSize = theme.typography.titleSize;
-            item.props.fontWeight = theme.typography.titleWeight;
-            item.props.fontFamily = theme.typography.fontFamily;
-          } else if (item.type?.resolvedName === 'Text') {
-            item.props.color = theme.colors.text;
-            item.props.fontSize = theme.typography.textSize;
-            item.props.fontFamily = theme.typography.fontFamily;
-          } else if (item.type?.resolvedName === 'Container' && item.isCanvas) {
-            if (key === 'ROOT') {
-              item.props.background = theme.colors.background;
-              item.props.padding = theme.layout.padding;
-              item.props.gap = theme.layout.gap;
-              item.props.borderRadius = theme.layout.borderRadius;
-            }
-          }
-        });
-
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            layout: JSON.stringify(layout)
-          }
-        };
-      } catch (err) {
-        console.error("Failed to apply theme to node:", err);
-        return node;
-      }
-    }));
-  }, [setNodes]);
-
-  const savePresentation = useCallback((title: string, author: string, baseFontSize: number) => {
-    if (!rfInstance) return;
-
-    const flow = rfInstance.toObject();
-    const presentation: PresentationFile = {
-      metadata: {
-        ...metadata,
-        title,
-        author,
-        baseFontSize,
-        createdAt: new Date().toISOString(),
-      },
-      nodes: flow.nodes as SlideNode[],
-      edges: flow.edges,
-      viewport: flow.viewport,
-    };
-
-    const blob = new Blob([JSON.stringify(presentation, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${title.replace(/\\s+/g, '_')}.slideflow.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    setIsMetadataOpen(false);
-  }, [rfInstance, metadata]);
-
-  const loadPresentation = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const presentation = JSON.parse(e.target?.result as string) as PresentationFile;
-        setMetadata(presentation.metadata);
-        setNodes(presentation.nodes);
-        setEdges(presentation.edges);
-        if (presentation.viewport) {
-          setViewport(presentation.viewport);
-        }
-      } catch (err) {
-        console.error("Failed to load presentation:", err);
-        alert("Falha ao carregar a apresentação. Verifique se o arquivo é válido.");
-      }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-  }, [setMetadata, setNodes, setEdges, setViewport]);
-
-  const loadPresentationTemplate = useCallback((template: any) => {
-    if (nodes.length > 0) {
-      const confirm = window.confirm("Isso irá reescrever sua apresentação atual com o novo modelo. Deseja continuar?");
-      if (!confirm) return;
-    }
-
-    const templateSlides = template.slides;
-
-    const newNodes: SlideNode[] = templateSlides.map((slide: any, index: number) => ({
-      id: `node_${Date.now()}_${index}`,
-      type: 'custom',
-      position: { x: index * 1000, y: 0 },
-      data: {
-        type: 'custom',
-        label: slide.label,
-        layout: slide.layout
-      },
-    }));
-
-    const newEdges: Edge[] = [];
-    for (let i = 0; i < newNodes.length - 1; i++) {
-      newEdges.push({
-        id: `edge_${newNodes[i].id}_${newNodes[i + 1].id}`,
-        source: newNodes[i].id,
-        target: newNodes[i + 1].id,
-        markerEnd: { type: MarkerType.ArrowClosed, color: COLOR_PALETTE.dark }
-      });
-    }
-
-    setNodes(newNodes);
-    setEdges(newEdges);
-
-    const mergedBrand = {
-      colors: { ...DEFAULT_BRAND.colors, ...template.brand?.colors },
-      fonts: { ...DEFAULT_BRAND.fonts, ...template.brand?.fonts },
-      fontSizes: { ...DEFAULT_BRAND.fontSizes, ...template.brand?.fontSizes },
-      fontWeights: { ...DEFAULT_BRAND.fontWeights, ...template.brand?.fontWeights },
-      logoUrl: template.brand?.logoUrl
-    };
-
-    setMetadata(prev => ({
-      ...prev,
-      title: template.name,
-      brand: mergedBrand
-    }));
-
-    setTimeout(() => {
-      fitView({ nodes: [{ id: newNodes[0].id }], duration: 800, padding: 0.1 });
-    }, 100);
-
-    setActiveSidebarTab('');
-  }, [nodes, setNodes, setEdges, setMetadata, fitView]);
 
   return (
     <div
@@ -391,47 +224,12 @@ const SlideFlowContent = () => {
     >
       {/* Header / Toolbar */}
       {mode === 'canvas' && (
-        <header className="h-14 bg-white border-b border-[#E5E5E5] flex items-center justify-between px-6 z-10 transition-all shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#0D99FF] to-[#007ACC] shadow-md border border-white/20">
-              {metadata.brand?.logoUrl ? (
-                <img src={metadata.brand.logoUrl} alt="Logo" className="w-full h-full object-contain p-1.5 bg-white" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white">
-                  <span className="font-black text-xs">SF</span>
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <h1 className="font-bold text-[13px] leading-tight text-[#333333] tracking-tight">{metadata.title}</h1>
-                <div className="px-1.5 py-0.5 bg-blue-50 text-[#0D99FF] text-[9px] font-bold rounded uppercase tracking-wider">Draft</div>
-              </div>
-              <p className="text-[10px] text-[#888888] font-medium tracking-wide">Publicado por {metadata.author}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsMetadataOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2 hover:bg-gray-100 text-[#333333] rounded-xl transition-all text-xs font-bold active:scale-95 border border-transparent hover:border-[#E5E5E5]"
-              title="Configurações da Apresentação"
-            >
-              <Save size={16} className="text-[#888888]" /> Salvar
-            </button>
-            <label className="flex items-center gap-2 px-3.5 py-2 hover:bg-gray-100 text-[#333333] rounded-xl transition-all text-xs font-bold cursor-pointer active:scale-95 border border-transparent hover:border-[#E5E5E5]" title="Carregar Projeto">
-              <Upload size={16} className="text-[#888888]" /> Carregar
-              <input type="file" accept=".json" onChange={loadPresentation} className="hidden" />
-            </label>
-            <div className="w-px h-8 bg-[#E5E5E5] mx-2" />
-            <button
-              onClick={startPresentation}
-              className="flex items-center gap-2 px-6 py-2 bg-[#0D99FF] text-white hover:bg-blue-600 rounded-xl transition-all font-bold text-xs shadow-[0_4px_12px_rgba(13,153,255,0.3)] active:scale-95"
-            >
-              <Play size={14} fill="currentColor" /> Apresentar
-            </button>
-          </div>
-        </header>
+        <Header
+          metadata={metadata}
+          setIsMetadataOpen={setIsMetadataOpen}
+          loadPresentation={loadPresentation}
+          startPresentation={startPresentation}
+        />
       )}
 
       {/* Main Content Area */}

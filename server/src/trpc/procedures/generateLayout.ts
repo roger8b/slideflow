@@ -13,7 +13,7 @@ import { runPipeline, SSEEvent } from '../../agents/pipeline.js'
  */
 
 const generateLayoutInput = z.object({
-  prompt: z.string().min(1).max(2000),
+  prompt: z.string().min(1).max(5000),
   maxSlides: z.number().int().min(1).max(10).optional(),
 })
 

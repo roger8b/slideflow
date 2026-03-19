@@ -319,8 +319,8 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
   - Ensure `useBrandKitMigration` hook correctly migrates localStorage Brand Kits on first authenticated load and clears localStorage on success.
   - Ask the user if questions arise before proceeding to FA 004.
 
-- [ ] 7. FA 005 — Storytelling Repository + Full Deck Generation
-  - [ ] 7.1 Implement `generateDeckFromStorytelling` tRPC subscription procedure
+- [x] 7. FA 005 — Storytelling Repository + Full Deck Generation
+  - [x] 7.1 Implement `generateDeckFromStorytelling` tRPC subscription procedure
     - Create `server/src/trpc/procedures/generateDeckFromStorytelling.ts`
     - Accept `{ macroNodes: MacroNode[] }` — skip Starter_Agent, start from Writer_Agent
     - Wire into pipeline: Writer_Agent (brand kit RAG lookup) → SlideLoopAgent × N slides
@@ -329,7 +329,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Register on tRPC router
     - _Requirements: 13.4_
 
-  - [ ] 7.2 Implement `StorytellingsPanel` component
+  - [x] 7.2 Implement `StorytellingsPanel` component
     - Create `src/components/editor/StorytellingsPanel.tsx`
     - Section 1: prompt textarea with template suggestions dropdown
       - Templates: "Pitch de produto", "Relatório de resultados Q{N}", "Kickoff de projeto",
@@ -342,7 +342,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Section 3: saved storytellings list (cards from localStorage)
     - _Requirements: 13.1, 13.3, 13.5_
 
-  - [ ] 7.3 Implement storytelling localStorage persistence
+  - [x] 7.3 Implement storytelling localStorage persistence
     - Key: `slideflow-storytellings`
     - Schema: `{ id: string, title: string, macroNodes: MacroNode[], slideCount: number, createdAt: string }`
     - `id` generated with `crypto.randomUUID()` on save
@@ -351,7 +351,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Dispatch `storytellingsUpdated` custom DOM event on save/delete for cross-component reactivity
     - _Requirements: 13.3, 13.5_
 
-  - [ ] 7.4 Implement `DeckGenerationProgress` component
+  - [x] 7.4 Implement `DeckGenerationProgress` component
     - Create `src/components/editor/DeckGenerationProgress.tsx`
     - Props: `{ macroNodes: MacroNode[], onCancel: () => void }`
     - Calls `trpc.generateDeckFromStorytelling.subscribe({ macroNodes })`
@@ -362,7 +362,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - On cancel: calls `subscription.unsubscribe()` (backend receives disconnect → AbortController fires)
     - _Requirements: 13.4, 13.6_
 
-  - [ ] 7.5 Add "Storytellings" tab to LeftSidebar and wire panel
+  - [x] 7.5 Add "Storytellings" tab to LeftSidebar and wire panel
     - Add new tab icon (e.g. `BookOpen` from lucide-react) to `LeftSidebar` component
     - Add `activeSidebarTab === 'storytellings'` branch in `App.tsx` to render `StorytellingsPanel`
     - Pass required props: `addNode`, `rfInstance` (for `fitView` after deck complete)

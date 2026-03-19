@@ -25,6 +25,7 @@ const MetadataModal = React.lazy(() => import('./components/MetadataModal').then
 const ThemeModal = React.lazy(() => import('./components/ThemeModal').then(m => ({ default: m.ThemeModal })));
 const BrandKitPanel = React.lazy(() => import('./components/editor/BrandKitPanel').then(m => ({ default: m.BrandKitPanel })));
 const TemplatesPanel = React.lazy(() => import('./components/editor/TemplatesPanel').then(m => ({ default: m.TemplatesPanel })));
+const StorytellingsPanel = React.lazy(() => import('./components/editor/StorytellingsPanel').then(m => ({ default: m.StorytellingsPanel })));
 
 import { PlayerNavigation } from './components/canvas/PlayerNavigation';
 import { BifurcationOverlay } from './components/canvas/BifurcationOverlay';
@@ -269,6 +270,16 @@ const SlideFlowContent = () => {
                 onSelectTemplate={addNodeWithTemplate}
                 onSelectPresentationTemplate={loadPresentationTemplate}
                 onClose={() => setActiveSidebarTab('')}
+              />
+            </React.Suspense>
+          )}
+
+          {mode === 'canvas' && activeSidebarTab === 'storytellings' && (
+            <React.Suspense fallback={<div className="w-[300px] h-full bg-white border-r border-[#E5E5E5] flex items-center justify-center text-sm text-[#888]">Loading...</div>}>
+              <StorytellingsPanel
+                onClose={() => setActiveSidebarTab('')}
+                addNode={(node) => setNodes((nds) => nds.concat(node))}
+                rfInstance={rfInstance}
               />
             </React.Suspense>
           )}

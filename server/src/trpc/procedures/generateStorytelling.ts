@@ -20,7 +20,7 @@ export type StorytellingSSEEvent =
   | { type: 'error'; message: string }
 
 const generateStorytellingInput = z.object({
-  prompt: z.string().min(1).max(2000),
+  prompt: z.string().min(1).max(5000),
 })
 
 export const generateStorytellingProcedure = publicProcedure
@@ -67,7 +67,7 @@ export const generateStorytellingProcedure = publicProcedure
           }
 
           // Run Starter_Agent
-          const macroNodes = await runStarterAgent(input.prompt)
+          const macroNodes = await runStarterAgent(input.prompt) as MacroNode[]
 
           // Complete with macroNodes
           emit.next({

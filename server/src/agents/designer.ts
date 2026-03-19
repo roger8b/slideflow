@@ -320,6 +320,12 @@ export async function runDesignerAgent(
     // Assign UUIDs to all nodes
     const result_with_uuids = assignUUIDs(craftJson)
     console.log('UUIDs assigned, returning CraftJson')
+    
+    // Add delay between requests to avoid Ollama concurrent request limit
+    if (process.env.OLLAMA_BASE_URL) {
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+    
     return result_with_uuids
   } catch (error) {
     if (error instanceof Error && error.message === 'LLM call timeout') {

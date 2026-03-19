@@ -128,6 +128,11 @@ export async function runWriterAgent(
       content: text,
       brandContext,
     })
+
+    // Add delay between requests to avoid Ollama concurrent request limit
+    if (process.env.OLLAMA_BASE_URL) {
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
   }
 
   return enrichedSlides

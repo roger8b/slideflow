@@ -31,7 +31,7 @@ export type SingleSlideSSEEvent =
   | { type: 'error'; message: string }
 
 const generateSlideInput = z.object({
-  prompt: z.string().min(1).max(2000),
+  prompt: z.string().min(1).max(5000),
   context: z.string().max(5000).optional(),
 })
 

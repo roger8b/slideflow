@@ -7,8 +7,8 @@ import { z } from 'zod'
 
 export const macroNodeSchema = z.object({
   title: z.string().max(100),
-  type: z.enum(['cover', 'content', 'closing', 'transition']),
-  description: z.string().max(500),
+  purpose: z.string().max(500),
+  key_points: z.array(z.string()).min(2).max(5),
 })
 
 export type MacroNode = z.infer<typeof macroNodeSchema>

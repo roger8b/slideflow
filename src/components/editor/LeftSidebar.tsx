@@ -6,7 +6,8 @@ import {
     Layers,
     Layout,
     Settings,
-    Plus
+    Plus,
+    BookOpen
 } from 'lucide-react';
 import { cn } from '../../constants';
 
@@ -19,6 +20,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ activeTab, setActiveTa
     const tabs = [
         { id: 'brand', icon: PaletteIcon, label: 'Marca' },
         { id: 'templates', icon: Layout, label: 'Modelos' },
+        { id: 'storytellings', icon: BookOpen, label: 'Storytellings' },
         { id: 'elements', icon: Plus, label: 'Elementos' },
         { id: 'uploads', icon: ImageIcon, label: 'Uploads' },
         { id: 'text', icon: Type, label: 'Texto' },

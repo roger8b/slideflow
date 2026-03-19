@@ -229,3 +229,83 @@ so that no API keys or AI logic remain in the client bundle.
 5. THE provider selection (Gemini vs Ollama) SHALL be determined at startup by a single env var (`OLLAMA_BASE_URL`) and SHALL require no application code changes to switch between providers.
 6. THE Backend_Server SHALL expose a single shared Genkit instance from `server/src/lib/ai.ts`; no individual agent file SHALL instantiate its own `genkit()` instance. All LlmAgents SHALL import the shared instance.
 7. WHEN `OLLAMA_BASE_URL` is absent AND `GEMINI_API_KEY` is absent, THE pipeline SHALL emit an SSE `error` event immediately without invoking any LLM call.
+
+---
+
+### Requirement 12: Single-Slide AI Generation (Editor Context)
+
+**User Story:** As a user editing a slide, I want to describe what I want on the current slide
+and have the AI generate only that slide's layout, so that I get a well-structured, creative
+result — not a literal copy of my text — without triggering a full deck generation pipeline.
+
+#### Acceptance Criteria
+
+1. THE Backend_Server SHALL expose a `generateSlide` tRPC subscription procedure that accepts
+   `{ prompt: string, context?: string }` and executes a THREE-STEP single-slide pipeline:
+   `SlideStorywriter_Agent → Designer_Agent → Reviewer_Agent (loop)`.
+   Starter_Agent is NOT invoked (no deck structure needed).
+
+2. THE `SlideStorywriter_Agent` (LlmAgent) SHALL act as a presentation-content specialist and
+   execute BEFORE Designer_Agent. Given the user prompt and optional context, it SHALL:
+   - Classify the slide type: `cover | agenda | content | section | closing | blank`
+   - Extract a concise headline (max 8 words)
+   - Produce 3–5 bullet points (max 12 words each) OR a subtitle OR a short paragraph,
+     depending on the inferred slide type
+   - Emit a `layoutHint` signal (`text-heavy | visual-focus | split | minimal`) to guide
+     the Designer_Agent's layout decision
+   - Write its output to `session.state['single_slide_content']` as a structured object —
+     NOT as the raw user text
+
+3. THE `generateSlide` procedure SHALL perform the same Brand Kit RAG lookup as Writer_Agent
+   (active kit → most recent kit → workspace_defaults → global_defaults → hardcoded defaults)
+   and inject the resolved brand tokens into `session.state['brand_context']` so that
+   Designer_Agent applies the workspace's actual colors and fonts.
+   WHEN no Brand Kit exists and hardcoded defaults are used, THE procedure SHALL emit a
+   `notice` SSE event informing the user that a default palette was applied and can be changed
+   in the Brand Kit settings.
+
+4. THE `generateSlide` procedure SHALL emit `SingleSlideSSEEvent` types:
+   `progress`, `iteration` (no slideIndex), `complete` (single `craftJson`, not array), `error`.
+   The `complete` event SHALL carry a single `craftJson` object.
+
+5. THE `AILayoutGenerator` component SHALL call `trpc.generateSlide.subscribe()` and on
+   `complete` SHALL call `actions.deserialize(JSON.stringify(event.craftJson))` without array
+   indexing.
+
+6. THE `generateSlide` procedure SHALL apply the same Circuit_Breaker (`maxIterations: 3`) and
+   `LLM_CALL_TIMEOUT_MS` guard as the full pipeline Designer_Agent loop.
+
+---
+
+### Requirement 13: Storytelling Repository and Full Deck Generation
+
+**User Story:** As a user, I want to create and save storytellings (macro slide structures)
+and then generate a complete deck from them, so that I can iterate on the narrative
+independently from the design and always have a reviewed structure before generating slides.
+
+#### Acceptance Criteria
+
+1. THE Frontend SHALL provide a "Storytellings" tab in the left sidebar containing a prompt
+   input area with template suggestions (e.g. "Pitch de produto", "Relatório de resultados",
+   "Kickoff de projeto", "Treinamento corporativo") that pre-fill the textarea with structured
+   scaffolding to help users write effective prompts.
+2. THE Backend_Server SHALL expose a `generateStorytelling` tRPC subscription procedure that
+   accepts `{ prompt: string }`, runs ONLY Starter_Agent, and on `complete` emits
+   `{ type: 'complete', macroNodes: MacroNode[] }` with the generated narrative structure.
+3. AFTER `generateStorytelling` completes, THE Frontend SHALL render the `macroNodes` as a
+   reviewable, editable list. THE user SHALL be able to Approve (saves to local storage key
+   `slideflow-storytellings`), Regenerate (re-runs the subscription with the same prompt), or
+   discard the result. Only approved storytellings appear in the saved list.
+4. THE Backend_Server SHALL expose a `generateDeckFromStorytelling` tRPC subscription procedure
+   that accepts `{ macroNodes: MacroNode[] }`, skips Starter_Agent, and runs
+   Writer_Agent (with Brand Kit RAG) followed by SlideLoopAgent (Designer + Reviewer per slide).
+   It SHALL emit the same SSE events as `generateLayout` (`progress`, `iteration`,
+   `slide_complete`, `complete`, `error`).
+5. THE StorytellingsPanel SHALL display saved storytellings as cards showing title, slide count,
+   and creation date. Each card SHALL have a "Generate Deck" button and a delete button.
+   Storytellings SHALL be persisted in `localStorage` under the key `slideflow-storytellings`
+   in V1 (backend persistence deferred to a future phase).
+6. WHEN `generateDeckFromStorytelling` emits a `slide_complete` event, THE Frontend SHALL
+   deserialize the `craftJson` and add a new slide node to the ReactFlow canvas immediately,
+   so that slides appear in real-time as the AI generates them. On `complete`, the canvas
+   SHALL fit-view to display the newly created deck.

@@ -55,24 +55,38 @@ graph TD
         subgraph Cognitive_Core [Sistema Multi-Agente: Google ADK TS]
             ADK((ADK Orchestrator\nSession State))
             CB{Circuit Breaker\nMax Iterations = 3}
-            
-            subgraph Workflow [Pipeline de Geração]
-                Starter[Starter LlmAgent\nGrafo React Flow]
+
+            subgraph WorkflowFull [Pipeline Completo: generateLayout]
+                Starter[Starter LlmAgent\nGrafo macro_nodes]
                 Writer[Writer LlmAgent\nConteúdo + RAG]
-                
-                subgraph Quality_Loop [Generator-Critic Loop]
+
+                subgraph Quality_Loop [Generator-Critic Loop × N slides]
                     Designer[Designer Agent\nJSON 16:9]
                     Reviewer[Reviewer Agent\nValidador Zod]
                     Designer --> Reviewer
                     Reviewer -->|Falha| Designer
                 end
-                
+
                 Starter --> Writer
                 Writer --> Quality_Loop
             end
-            
+
+            subgraph WorkflowDeck [Deck de Storytelling: generateDeckFromStorytelling]
+                Writer2[Writer LlmAgent\nConteúdo + RAG]
+                Quality_Loop2[Quality_Loop × N slides]
+                Writer2 --> Quality_Loop2
+            end
+
+            subgraph WorkflowSlide [Slide Único: generateSlide]
+                Storywriter[SlideStorywriter LlmAgent\nClassifica + Estrutura conteúdo]
+                Quality_Loop3[Quality_Loop 1 slide\nDesigner + Reviewer]
+                Storywriter --> Quality_Loop3
+            end
+
             ADK <--> CB
-            CB <--> Workflow
+            CB <--> WorkflowFull
+            CB <--> WorkflowDeck
+            CB <--> WorkflowSlide
         end
 
         subgraph Inference_Local [Inferência Local Opcional]
@@ -116,7 +130,11 @@ graph TD
 
 ### 3.1. API & Backend Transacional (Bun + Hono + tRPC v11)
 *   **Runtime & Framework:** Utilizaremos a stack **Bun + Hono**. O Hono é excepcionalmente otimizado, entregando rotas rápidas e suportando *streaming* de alta concorrência com um footprint de RAM mínimo (ideal para VPS).
-*   **tRPC v11 SSE:** A comunicação com o cliente React usará o novo `sse` no `initTRPC.create()`. O padrão *Server-Sent Events* substitui WebSockets complexos para enviar em tempo real a UI os estados do pensamento dos agentes do ADK (ex: *"Agent_Designer está formatando o layout..."*). O contrato de eventos inclui: `progress` (transição de agente), `iteration` (resultado por slide+iteração), `slide_complete` (CraftJson de um slide pronto) e `complete` (array `craftJsons[]` final).
+*   **tRPC v11 SSE:** A comunicação com o cliente React usará o novo `sse` no `initTRPC.create()`. O padrão *Server-Sent Events* substitui WebSockets complexos para enviar em tempo real a UI os estados do pensamento dos agentes do ADK. O sistema expõe **quatro procedures SSE** com contratos de eventos distintos:
+    - `generateSlide` — `progress | iteration | complete(craftJson) | error` (slide único, sem array)
+    - `generateStorytelling` — `progress | complete(macroNodes) | error` (Starter apenas)
+    - `generateDeckFromStorytelling` — `progress | iteration | slide_complete | complete(craftJsons[]) | error`
+    - `generateLayout` — mesmo contrato de `generateDeckFromStorytelling` (pipeline completo)
 *   **CORS:** O servidor Hono expõe um middleware `cors()` como primeiro handler, com origem configurável via variável de ambiente `CORS_ORIGIN` (default: `http://localhost:5173` em desenvolvimento).
 *   **Autenticação e Multi-Tenancy:** Implementado via **Better-Auth**. O modelo de dados gira em torno do `Workspace`. Ao criar uma conta (Google/Senha), o *Onboarding Worker* copia as definições de *Global_Defaults* (temas e fontes do sistema) para o Workspace do usuário via um `INSERT INTO ... SELECT` em SQL, isolando a customização e pavimentando o futuro para o modelo B2B (Times).
 
@@ -128,12 +146,25 @@ O Turso funciona como um arquivo embutido (`database.db`), eliminando a necessid
 
 ### 3.3. Cognitive Engine (Google ADK para TypeScript)
 O motor cognitivo abandona grafos manuais instáveis em prol da abstração de *Papéis e Hierarquia* nativa do ADK (`@google/adk`).
+
+*   **Três modos de pipeline** expostos como procedures tRPC separadas:
+
+    | Procedure | Agentes executados | Contexto de uso |
+    |---|---|---|
+    | `generateSlide` | SlideStorywriter → Designer → Reviewer (1 slide) | Editor de slide — estrutura conteúdo, resolve brand kit, gera layout |
+    | `generateStorytelling` | Starter apenas | Repositório de Storytellings — gera macro_nodes para aprovação |
+    | `generateDeckFromStorytelling` | Writer → SlideLoop × N | Repositório de Storytellings — gera deck a partir de storytelling aprovado |
+    | `generateLayout` | Starter → Writer → SlideLoop × N | Pipeline completo (uso futuro / integração legada) |
+
 *   **Isolamento de Estado:** O estado de curto prazo transita fluidamente por `session.state`. O agente *Starter* deposita a macroestrutura no `session.state['macro_nodes']`, lido na sequência pelos demais agentes.
 *   **Pipeline de Execução e `LoopAgent`:**
     *   Utilizamos um `SequentialAgent` para orquestrar a passagem do *Starter* -> *Writer*.
     *   Em seguida, um `SlideLoopAgent` (TypeScript puro) itera sobre o array `enriched_content[]`, executando para cada slide um `LoopAgent` (*Generator-Critic Pattern*). O *Designer* gera o JSON do Craft.js e o *QA Reviewer* — **uma função TypeScript/Zod pura, sem LLM** — valida os limites do canvas (960×540). Se violados, força o *Designer* a corrigir. O loop é encerrado via `StopChecker` quando a validação passa, ou após `maxIterations: 3` falhas consecutivas (Circuit Breaker). Os resultados acumulam em `craft_jsons[]` no `session.state`.
     *   **Cancelamento:** Cada sessão de geração é vinculada a um `AbortController`. Se o cliente desconectar do SSE, `abortController.abort()` é chamado imediatamente, cancelando qualquer chamada LLM pendente.
     *   **Timeout por chamada LLM:** Cada chamada individual ao Gemini é envolvida em `Promise.race([call, timeout(LLM_CALL_TIMEOUT_MS)])`. Em caso de timeout, o erro é tratado como falha de iteração e incrementa o contador do LoopAgent.
+
+*   **Repositório de Storytellings (FA 005 — Frontend):**
+    O usuário cria e gerencia storytellings (estruturas macro de slides) de forma independente da geração visual — separando a narrativa do design. A aba "Storytellings" na sidebar esquerda expõe: (1) geração via `generateStorytelling` com sugestões de templates estruturados; (2) aprovação/edição do resultado antes de salvar; (3) lista de storytellings salvos em `localStorage('slideflow-storytellings')`; (4) botão "Gerar Deck" por storytelling que chama `generateDeckFromStorytelling` e adiciona slides ao canvas ReactFlow em tempo real.
 
 ---
 

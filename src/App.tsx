@@ -37,6 +37,9 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { AppMode, SlideNode } from './types';
 import { DEFAULT_BRAND } from './constants';
 
+// Defined outside component to prevent ReactFlow nodeTypes warning (#002)
+const nodeTypes = { custom: CustomNode };
+
 const initialNodes: SlideNode[] = [
   {
     id: 'start',
@@ -77,10 +80,6 @@ const SlideFlowContent = () => {
     return editingNodeId ? nodes.find((n) => n.id === editingNodeId) : null;
   }, [editingNodeId, nodes]);
 
-  const nodeTypes = useMemo(() => ({
-    custom: CustomNode,
-  }), []);
-
   // --- Hooks ---
   const {
     currentNodeId,
@@ -113,6 +112,16 @@ const SlideFlowContent = () => {
     setIsMetadataOpen,
     isEditorOpen
   );
+
+  // Listen for brand kit panel open requests from AILayoutGenerator
+  useEffect(() => {
+    const handleOpenBrandKitPanel = () => {
+      setActiveSidebarTab('brand');
+    };
+
+    window.addEventListener('openBrandKitPanel', handleOpenBrandKitPanel);
+    return () => window.removeEventListener('openBrandKitPanel', handleOpenBrandKitPanel);
+  }, []);
 
   useEffect(() => {
     if (mode !== 'player') return;

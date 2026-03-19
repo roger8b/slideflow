@@ -36,11 +36,10 @@ export const createBrandKit = publicProcedure
       workspaceId: ctx.workspaceId,
       name: input.name,
       tokens: JSON.stringify(input.tokens),
-      isActive: false,
       embedding: null,
       embeddingModel: 'text-embedding-004',
       createdAt: new Date(),
-    })
+    } as any)
 
     return { id }
   })
@@ -93,13 +92,13 @@ export const setActiveBrandKit = publicProcedure
       // Set all to inactive
       await tx
         .update(brandKits)
-        .set({ isActive: false })
+        .set({ isActive: false } as any)
         .where(eq(brandKits.workspaceId, ctx.workspaceId!))
 
       // Set chosen to active
       await tx
         .update(brandKits)
-        .set({ isActive: true })
+        .set({ isActive: true } as any)
         .where(and(eq(brandKits.id, input.id), eq(brandKits.workspaceId, ctx.workspaceId!)))
     })
 
@@ -145,11 +144,10 @@ export const migrateBrandKits = publicProcedure
         workspaceId: ctx.workspaceId!,
         name: kit.name,
         tokens: JSON.stringify(kit.tokens),
-        isActive: false,
         embedding: null,
         embeddingModel: 'text-embedding-004',
         createdAt: new Date(),
-      }))
+      } as any))
     )
 
     return { migrated: newKits.length }

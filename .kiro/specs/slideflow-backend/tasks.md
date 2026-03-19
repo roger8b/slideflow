@@ -196,6 +196,58 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Emit SSE `error` event immediately if both are absent
     - _Requirements: 11.4, 11.7_
 
+  - [x] 3.20 Refactor `generateSlide` procedure — add SlideStorywriter + Brand Kit (⚠️ reopen: raw prompt was going directly to Designer)
+    - Update `server/src/trpc/procedures/generateSlide.ts` pipeline to:
+      `SlideStorywriter_Agent → Designer_Agent → Reviewer_Agent (loop, maxIterations: 3)`
+    - Before invoking the pipeline: perform Brand Kit RAG lookup (same 5-level fallback as Writer_Agent)
+      and write resolved tokens to `session.state['brand_context']`
+    - If hardcoded defaults are used (no kit found): emit a `notice` SSE event before `progress` events
+    - Emit `SingleSlideSSEEvent`: `progress`, `notice` (optional), `iteration` (no slideIndex),
+      `complete` (single `craftJson`, NOT array), `error`
+    - _Requirements: 12.1, 12.3, 12.4, 12.6_
+
+  - [x] 3.20b Implement `SlideStorywriter_Agent` (`server/src/agents/slideStorywriter.ts`)
+    - LlmAgent specialized in single-slide content structuring — runs BEFORE Designer_Agent
+    - Classify slide type: `cover | agenda | content | section | closing | blank`
+    - Extract headline (max 8 words) + structured body:
+      - `cover / section / closing` → subtitle (1 sentence max)
+      - `agenda / content` → 3–5 bullet points (max 12 words each)
+      - `blank` → empty body array
+    - Emit `layoutHint`: `text-heavy | visual-focus | split | minimal`
+    - Write `SingleSlideContent` object to `session.state['single_slide_content']`
+    - Update Designer_Agent prompt in single-slide context to read from `single_slide_content`
+      and `brand_context` session keys — NEVER from the raw user prompt
+    - _Requirements: 12.2_
+
+  - [x] 3.21 Update `AILayoutGenerator.tsx` to handle `notice` SSE event
+    - Already calls `trpc.generateSlide.subscribe()` ✓
+    - Add `notice` event handler: display a dismissible toast/banner informing user a default
+      brand palette was applied, with a link to Brand Kit settings
+    - _Requirements: 12.3, 12.5_
+
+  - [x] 3.23 Update `Designer_Agent` prompt and input routing for dual-mode operation
+    - The Designer_Agent currently always reads `enriched_content[i]` from session state.
+      In single-slide mode it must read from `single_slide_content` + `brand_context` instead.
+    - Add a `mode: 'full' | 'single'` field to the designer's invocation context (pipeline param)
+    - In `single` mode:
+      - Read headline, body[], layoutHint from `session.state['single_slide_content']`
+      - Read brand tokens from `session.state['brand_context']` (resolved before pipeline starts)
+      - Designer prompt skips references to `enriched_content[]` and slide index
+    - In `full` mode: keep current behavior (reads `enriched_content[current_slide_index]`)
+    - Map `layoutHint` values to explicit Craft.js flex patterns in DESIGNER_PROMPT:
+      - `text-heavy` → single column, large Title + stacked bullet Containers
+      - `visual-focus` → 60% Image Container / 40% text column (side-by-side flex)
+      - `split` → two equal flex children (text left, visual placeholder right)
+      - `minimal` → centered Title only, generous padding, no body
+    - _Requirements: 12.1, 12.2_
+
+  - [x] 3.22 Implement `generateStorytelling` tRPC subscription procedure
+    - Create `server/src/trpc/procedures/generateStorytelling.ts`: accepts `{ prompt: string }`, runs Starter_Agent only
+    - Emit `StorytellingSSEEvent`: `progress`, `complete` (with `macroNodes: MacroNode[]`), `error`
+    - Export `MacroNode` type from `server/src/schemas/macroNode.ts` for reuse by `generateDeckFromStorytelling`
+    - Register procedure on tRPC router
+    - _Requirements: 13.2_
+
   - [x] 3.19 Document `OLLAMA_BASE_URL` in `server/README.md`
     - Add `OLLAMA_BASE_URL` to Optional env vars section with description and example
     - Add "Local Testing with Ollama" section explaining:
@@ -212,7 +264,12 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Assert same CraftJson input always produces identical pass/fail result across multiple calls; assert no LLM client is instantiated in reviewer.ts
     - Minimum 100 iterations
 
-- [ ] 4. Checkpoint — FA 002 complete
+- [ ] 4. Checkpoint — FA 002 complete (including corrective sub-tasks)
+  - Ensure `AILayoutGenerator.tsx` calls `trpc.generateSlide` (not `generateLayout`) and deserializes a single `craftJson`.
+  - Ensure `generateStorytelling` procedure returns `macroNodes` via SSE on a Starter-only run.
+  - Ensure `generateSlide` runs only the Designer → Reviewer loop (confirm no Starter/Writer calls in logs).
+  - Ensure `MacroNode` type is exported from `server/src/schemas/macroNode.ts`.
+  - _Original checkpoint items below:_
   - Ensure end-to-end SSE flow works: browser prompt → tRPC subscription → ADK pipeline → Craft.js deserialize.
   - Ensure `src/lib/geminiService.ts` no longer exists.
   - Ensure `npm run lint` passes on both frontend and server.
@@ -261,8 +318,66 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
   - Ensure `useBrandKitMigration` hook correctly migrates localStorage Brand Kits on first authenticated load and clears localStorage on success.
   - Ask the user if questions arise before proceeding to FA 004.
 
-- [ ] 7. FA 004 — VPS deploy: auth, encryption, secrets, infrastructure
-  - [ ] 7.0 Refactor `db/client.ts` from module side-effect to explicit `openDatabase()` function
+- [ ] 7. FA 005 — Storytelling Repository + Full Deck Generation
+  - [ ] 7.1 Implement `generateDeckFromStorytelling` tRPC subscription procedure
+    - Create `server/src/trpc/procedures/generateDeckFromStorytelling.ts`
+    - Accept `{ macroNodes: MacroNode[] }` — skip Starter_Agent, start from Writer_Agent
+    - Wire into pipeline: Writer_Agent (brand kit RAG lookup) → SlideLoopAgent × N slides
+    - Emit full `SSEEvent` set: `progress`, `iteration`, `slide_complete`, `complete`, `error`
+    - Apply same `AbortController` pattern as `generateLayout`
+    - Register on tRPC router
+    - _Requirements: 13.4_
+
+  - [ ] 7.2 Implement `StorytellingsPanel` component
+    - Create `src/components/editor/StorytellingsPanel.tsx`
+    - Section 1: prompt textarea with template suggestions dropdown
+      - Templates: "Pitch de produto", "Relatório de resultados Q{N}", "Kickoff de projeto",
+        "Treinamento corporativo", "Demo de funcionalidade", "Onboarding de time"
+      - Selecting a template pre-fills textarea with structured scaffold (title, audience, key points, CTA)
+    - Section 2: generation result view (rendered after `generateStorytelling` completes)
+      - Editable list of `MacroNode` cards (title + description per slide)
+      - [Aprovar] button → save to `localStorage('slideflow-storytellings')` + show in saved list
+      - [Regenerar] button → re-run `trpc.generateStorytelling.subscribe()` with same prompt
+    - Section 3: saved storytellings list (cards from localStorage)
+    - _Requirements: 13.1, 13.3, 13.5_
+
+  - [ ] 7.3 Implement storytelling localStorage persistence
+    - Key: `slideflow-storytellings`
+    - Schema: `{ id: string, title: string, macroNodes: MacroNode[], slideCount: number, createdAt: string }`
+    - `id` generated with `crypto.randomUUID()` on save
+    - `title` derived from `macroNodes[0].title`
+    - Implement CRUD helpers: `saveStorytelling`, `listStorytelling`, `deleteStorytelling`
+    - Dispatch `storytellingsUpdated` custom DOM event on save/delete for cross-component reactivity
+    - _Requirements: 13.3, 13.5_
+
+  - [ ] 7.4 Implement `DeckGenerationProgress` component
+    - Create `src/components/editor/DeckGenerationProgress.tsx`
+    - Props: `{ macroNodes: MacroNode[], onCancel: () => void }`
+    - Calls `trpc.generateDeckFromStorytelling.subscribe({ macroNodes })`
+    - Renders: current SSE status message, slide counter ("N / total slides gerados"), completed slide title list
+    - On each `slide_complete` event: calls `addNode(craftJson)` to add slide to ReactFlow canvas
+    - On `complete`: calls `rfInstance.fitView()` then collapses to success state
+    - On `error`: shows error message + [Tentar novamente] button
+    - On cancel: calls `subscription.unsubscribe()` (backend receives disconnect → AbortController fires)
+    - _Requirements: 13.4, 13.6_
+
+  - [ ] 7.5 Add "Storytellings" tab to LeftSidebar and wire panel
+    - Add new tab icon (e.g. `BookOpen` from lucide-react) to `LeftSidebar` component
+    - Add `activeSidebarTab === 'storytellings'` branch in `App.tsx` to render `StorytellingsPanel`
+    - Pass required props: `addNode`, `rfInstance` (for `fitView` after deck complete)
+    - _Requirements: 13.5_
+
+- [ ] 8. Checkpoint — FA 005 complete
+  - Ensure `generateDeckFromStorytelling` skips Starter_Agent (confirm in server logs).
+  - Ensure `StorytellingsPanel` generates storytelling, renders editable `MacroNode` list, and saves to localStorage.
+  - Ensure template suggestions pre-fill the textarea with structured scaffolding.
+  - Ensure deck generation adds slide nodes to canvas in real-time as `slide_complete` events arrive.
+  - Ensure `fitView()` is called after `complete` event.
+  - Ensure disconnect/cancel fires `AbortController.abort()` on the server.
+  - Ask the user if questions arise before proceeding to FA 004.
+
+- [ ] 9. FA 004 — VPS deploy: auth, encryption, secrets, infrastructure
+  - [ ] 9.0 Refactor `db/client.ts` from module side-effect to explicit `openDatabase()` function
     - Replace the module-level `drizzle()` call and `DATABASE_URL` guard with `export async function openDatabase(): Promise<void>`
     - Export `db` as a module-level variable assigned lazily inside `openDatabase()`
     - Call `await openDatabase()` in `server/src/index.ts` startup sequence explicitly after `fetchSecretsFromInfisical()`, before `runMigrations()`
@@ -275,59 +390,59 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
       4. app.use(cors(...))
       5. Bun.serve(...)
       ```
-    - _Pre-requisite for 7.5 (Infisical) and 7.7 (AEGIS encryption)_
+    - _Pre-requisite for 9.5 (Infisical) and 9.7 (AEGIS encryption)_
 
-  - [ ] 7.1 Implement Better-Auth with Google OAuth2
+  - [ ] 9.1 Implement Better-Auth with Google OAuth2
     - Create `server/src/auth/better-auth.ts`: configure Google OAuth2 provider, session cookie settings
     - Register Workspace creation hook that triggers Onboarding_Worker on first login
     - Mount Better-Auth handler at `/auth` in `server/src/index.ts`
     - _Requirements: 7.1_
 
-  - [ ] 7.2 Implement Onboarding_Worker
+  - [ ] 9.2 Implement Onboarding_Worker
     - Create `server/src/auth/onboarding.ts`: single `INSERT INTO workspace_defaults SELECT ... FROM global_defaults` in one transaction
     - Triggered by Better-Auth new-user hook; scoped to the new user's `workspace_id`
     - Idempotent: check `WHERE workspace_id = ? LIMIT 1` before inserting; skip if rows already exist
     - On transaction failure: log error and allow the Workspace to remain functional (Writer_Agent falls back to `global_defaults` directly, then hardcoded defaults)
     - _Requirements: 7.2_
 
-  - [ ]* 7.3 Write property test for auth middleware 401 behavior (P13)
+  - [ ]* 9.3 Write property test for auth middleware 401 behavior (P13)
     - **Property 13: Unauthenticated requests receive HTTP 401**
     - **Validates: Requirements 7.3**
     - File: `server/src/__tests__/auth.test.ts`
     - Use `fc.string()` for invalid/missing tokens; assert every tRPC request without valid session returns HTTP 401 and no handler is invoked
     - Minimum 100 iterations
 
-  - [ ]* 7.4 Write property test for Onboarding_Worker (P14)
+  - [ ]* 9.4 Write property test for Onboarding_Worker (P14)
     - **Property 14: Onboarding copies all global_defaults for new users**
     - **Validates: Requirements 7.2**
     - File: `server/src/__tests__/onboarding.test.ts`
     - Use `fc.array(fc.record(...))` for `global_defaults` rows; assert workspace row count equals `global_defaults` count after onboarding
     - Minimum 100 iterations
 
-  - [ ] 7.5 Implement Infisical secret injection and fatal startup guard
+  - [ ] 9.5 Implement Infisical secret injection and fatal startup guard
     - Create `server/src/secrets/infisical.ts`: fetch `GEMINI_API_KEY` and AEGIS encryption key from Infisical at startup
     - On Infisical unreachable: log descriptive error and `process.exit(1)`
     - Inject fetched secrets into `process.env` before DB open and tRPC mount
     - Wire `fetchSecretsFromInfisical()` as step 1 in `server/src/index.ts` startup sequence
     - _Requirements: 8.5, 8.6_
 
-  - [ ]* 7.6 Write unit tests for Infisical fatal startup guard
+  - [ ]* 9.6 Write unit tests for Infisical fatal startup guard
     - File: `server/src/__tests__/startup.test.ts` (extend existing file)
     - Test: Infisical unreachable → `process.exit(1)` with descriptive log before server binds
     - Test: `GEMINI_API_KEY` absent at generation time → SSE `error` event, no LLM call made
     - _Requirements: 8.6, 3.5_
 
-  - [ ] 7.7 Enable AEGIS encryption on Turso DB
+  - [ ] 9.7 Enable AEGIS encryption on Turso DB
     - Pass AEGIS encryption key (from Infisical) to `createClient({ url, encryptionKey })`
     - Document `chmod 600 local.db` requirement in `server/README.md` (or inline comment)
     - _Requirements: 8.3, 8.4_
 
-  - [ ] 7.8 Write Caddy and UFW configuration files
+  - [ ] 9.8 Write Caddy and UFW configuration files
     - Create `deploy/Caddyfile`: TLS termination via Let's Encrypt, reverse proxy to `127.0.0.1:3000`
     - Create `deploy/ufw-setup.sh`: allow ports 80 and 443 only, deny all other inbound
     - _Requirements: 8.1, 8.2_
 
-- [ ] 8. Final checkpoint — all phases complete
+- [ ] 10. Final checkpoint — all phases complete
   - Ensure all non-optional tests pass (`bun test` in `server/`).
   - Ensure `npm run lint` passes on the frontend.
   - Ensure no `GEMINI_API_KEY` appears in `vite.config.ts` define block or frontend bundle.

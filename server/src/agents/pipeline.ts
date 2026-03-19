@@ -104,7 +104,7 @@ export async function* runPipeline(
 
         try {
           // Designer_Agent
-          craftJson = await runDesignerAgent(slide, zodErrors)
+          craftJson = await runDesignerAgent(slide, 'full', zodErrors)
 
           // Reviewer_Agent (pure Zod validation)
           const reviewResult = runReviewerAgent(craftJson)

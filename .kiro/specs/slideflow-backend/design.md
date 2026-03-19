@@ -197,6 +197,93 @@ typed SSE events as they arrive from the `AsyncGenerator`. On client disconnect 
 `unsubscribe`), calls `abortController.abort()` to cancel the active ADK session and stop all
 pending LLM calls immediately.
 
+> **Note:** `generateLayout` runs the FULL pipeline (Starter → Writer → SlideLoop). For
+> single-slide editing use `generateSlide`. For deck creation from an existing narrative use
+> `generateDeckFromStorytelling`.
+
+#### `server/src/trpc/procedures/generateSlide.ts`
+Single-slide generation procedure. Accepts `{ prompt: string, context?: string }`. Runs a
+dedicated three-step single-slide pipeline:
+
+```
+SlideStorywriter_Agent → Designer_Agent → Reviewer_Agent (maxIterations: 3)
+```
+
+Starter_Agent is NOT invoked. The `complete` event carries a single `craftJson` object (not an
+array). Used exclusively by `AILayoutGenerator.tsx` (editor context — replace current slide layout).
+
+```typescript
+input:  { prompt: string; context?: string }
+output: AsyncIterable<SingleSlideSSEEvent>
+// SingleSlideSSEEvent:
+// | { type: 'progress'; agent: string; message: string }
+// | { type: 'notice'; message: string }              ← emitted when hardcoded brand defaults are used
+// | { type: 'iteration'; iteration: number; valid: boolean }
+// | { type: 'complete'; craftJson: CraftJson }
+// | { type: 'error'; message: string }
+```
+
+The procedure performs a Brand Kit RAG lookup (same 5-level fallback chain as Writer_Agent)
+and writes the resolved tokens to `session.state['brand_context']` before invoking
+SlideStorywriter_Agent. When hardcoded defaults are used (no kit found), emits a `notice` event.
+
+#### `server/src/agents/slideStorywriter.ts`
+The `SlideStorywriter_Agent` is an LlmAgent that acts as a presentation-content specialist
+specifically for single-slide generation. It processes the user prompt BEFORE the Designer_Agent,
+preventing raw text from being copied literally into the slide layout.
+
+**Input** (from `session.state`): `prompt`, optional `context`, `brand_context`
+
+**Responsibilities**:
+1. **Classify** the slide type: `cover | agenda | content | section | closing | blank`
+2. **Extract** a concise headline (max 8 words)
+3. **Produce** structured body content based on type:
+   - `cover` / `section` / `closing` → subtitle (1 sentence)
+   - `agenda` / `content` → 3–5 bullet points (max 12 words each)
+   - `blank` → no body (layout-only)
+4. **Emit** a `layoutHint`: `text-heavy | visual-focus | split | minimal`
+
+**Output** written to `session.state['single_slide_content']`:
+
+```typescript
+interface SingleSlideContent {
+  type:        'cover' | 'agenda' | 'content' | 'section' | 'closing' | 'blank'
+  headline:    string          // max 8 words
+  body:        string[]        // bullets (content/agenda) OR [subtitle] (cover/section) OR []
+  layoutHint:  'text-heavy' | 'visual-focus' | 'split' | 'minimal'
+}
+```
+
+Designer_Agent reads `session.state['single_slide_content']` and `session.state['brand_context']`
+as its inputs — it NEVER reads the raw user prompt directly in single-slide mode.
+
+#### `server/src/trpc/procedures/generateStorytelling.ts`
+Storytelling generation procedure. Accepts `{ prompt: string }`. Runs ONLY Starter_Agent.
+Emits `progress` events during generation and a `complete` event containing `macroNodes`.
+
+Used by StorytellingsPanel to generate a narrative structure for user review before deck generation.
+
+```typescript
+input:  { prompt: string }
+output: AsyncIterable<StorytellingSSEEvent>
+// StorytellingSSEEvent:
+// | { type: 'progress'; agent: string; message: string }
+// | { type: 'complete'; macroNodes: MacroNode[] }
+// | { type: 'error'; message: string }
+```
+
+#### `server/src/trpc/procedures/generateDeckFromStorytelling.ts`
+Full deck generation from a pre-approved storytelling. Accepts `{ macroNodes: MacroNode[] }`.
+Skips Starter_Agent — starts from Writer_Agent (with Brand Kit RAG lookup) and runs
+SlideLoopAgent (Designer + Reviewer per slide). Emits the full SSE event set.
+
+Used by StorytellingsPanel when user clicks "Generate Deck" on a saved storytelling.
+
+```typescript
+input:  { macroNodes: MacroNode[] }
+output: AsyncIterable<SSEEvent>  // same contract as generateLayout
+```
+
 #### `server/src/trpc/procedures/brandKit.ts`
 CRUD procedures for Brand Kit management: `create`, `list`, `delete`, `setActive`, `migrate`.
 On `create`, stores brand tokens with `is_active = false` and the `embedding` blob reserved
@@ -293,8 +380,41 @@ header when the limit is exceeded.
 ### Frontend Changes
 
 #### `src/components/editor/AILayoutGenerator.tsx`
-Refactored to use `trpc.generateLayout.subscribe()` instead of `generateAILayout()`. Renders
-SSE progress events as status text. On `complete` event, calls `actions.deserialize(craftJson)`.
+Refactored to use `trpc.generateSlide.subscribe()` (single-slide mode) instead of
+`generateAILayout()`. Renders SSE progress events as status text. On `complete` event, calls
+`actions.deserialize(JSON.stringify(event.craftJson))` — receives a single `craftJson` object
+directly, not an array.
+
+#### `src/components/editor/StorytellingsPanel.tsx`
+New left sidebar panel accessible via the "Storytellings" tab. Contains three sections:
+
+1. **Prompt input area** — textarea with a template suggestions dropdown offering pre-built
+   scaffolding prompts ("Pitch de produto", "Relatório de resultados Q{N}", "Kickoff de projeto",
+   "Treinamento corporativo", "Demo de funcionalidade"). Selecting a template pre-fills the
+   textarea with a structured prompt scaffold to guide the user.
+
+2. **Generation flow** — calls `trpc.generateStorytelling.subscribe()`. While generating,
+   renders a progress indicator with the current agent status. On `complete`, renders the
+   returned `macroNodes` as an editable list of slide cards (title + description per slide).
+   Shows [Aprovar] [Regenerar] actions. Approve saves to `localStorage('slideflow-storytellings')`.
+
+3. **Saved storytellings list** — displays all saved storytellings as cards showing title
+   (derived from first macro_node), slide count, and creation date. Each card has:
+   - Preview of first 3 slide titles
+   - [Gerar Deck] button → triggers deck generation progress view
+   - [Excluir] button → removes from localStorage
+
+#### `src/components/editor/DeckGenerationProgress.tsx`
+Inline progress component shown within StorytellingsPanel when "Gerar Deck" is clicked.
+Calls `trpc.generateDeckFromStorytelling.subscribe({ macroNodes })`. Displays:
+- Current SSE status message
+- Slide counter (e.g. "3 / 7 slides gerados")
+- Thumbnail list of completed slides as they arrive
+
+On each `slide_complete` event: deserializes `craftJson` and calls `addNode()` to add the
+slide to the ReactFlow canvas. On `complete`: collapses progress view and calls
+`fitView()` on the ReactFlow instance to show the newly created deck. On `error`: shows error
+message with a [Tentar novamente] button.
 
 #### `src/lib/geminiService.ts`
 Deleted after FA 002 backend ADK pipeline is operational. This file currently contains the
@@ -317,24 +437,56 @@ failure — the retry occurs on the *next* page load, not within the same sessio
 #### `vite.config.ts`
 `define` block entry for `GEMINI_API_KEY` removed.
 
-### SSE Event Contract
+### SSE Event Contracts
 
 ```typescript
+// Full pipeline: generateLayout + generateDeckFromStorytelling
 type SSEEvent =
   | { type: 'progress'; agent: string; message: string }
   | { type: 'iteration'; slideIndex: number; iteration: number; valid: boolean }
   | { type: 'slide_complete'; slideIndex: number; craftJson: CraftJson }
   | { type: 'complete'; craftJsons: CraftJson[] }
   | { type: 'error'; message: string }
+
+// Single-slide mode: generateSlide
+type SingleSlideSSEEvent =
+  | { type: 'progress'; agent: string; message: string }
+  | { type: 'notice'; message: string }            // emitted when hardcoded brand defaults are used
+  | { type: 'iteration'; iteration: number; valid: boolean }
+  | { type: 'complete'; craftJson: CraftJson }
+  | { type: 'error'; message: string }
+
+// Storytelling only: generateStorytelling
+type StorytellingSSEEvent =
+  | { type: 'progress'; agent: string; message: string }
+  | { type: 'complete'; macroNodes: MacroNode[] }
+  | { type: 'error'; message: string }
 ```
 
 ### tRPC Procedure Signatures
 
 ```typescript
-// generateLayout — subscription (SSE)
+// generateLayout — full pipeline, subscription (SSE)
 input:  { prompt: string }
 output: AsyncIterable<SSEEvent>
 auth:   required (workspace_id injected from session)
+
+// generateSlide — single-slide (editor context), subscription (SSE)
+// Pipeline: SlideStorywriter_Agent → Designer_Agent → Reviewer_Agent (loop)
+input:  { prompt: string; context?: string }
+output: AsyncIterable<SingleSlideSSEEvent>
+auth:   required
+note:   performs Brand Kit RAG lookup; emits 'notice' event if hardcoded defaults are used
+
+// generateStorytelling — Starter_Agent only, subscription (SSE)
+input:  { prompt: string }
+output: AsyncIterable<StorytellingSSEEvent>
+auth:   required
+
+// generateDeckFromStorytelling — Writer + SlideLoop, subscription (SSE)
+input:  { macroNodes: MacroNode[] }
+output: AsyncIterable<SSEEvent>
+auth:   required
 
 // brandKit.create — mutation
 input:  { name: string; tokens: BrandTokens }
@@ -437,6 +589,31 @@ export const workspaceDefaults = sqliteTable('workspace_defaults', {
 })
 ```
 
+### Storytelling localStorage Schema
+
+Storytellings are persisted client-side in V1 (backend persistence deferred). The key is
+`slideflow-storytellings` and the schema is:
+
+```typescript
+interface SavedStorytelling {
+  id:         string          // crypto.randomUUID() generated on approve
+  title:      string          // derived from first macro_node.title
+  macroNodes: MacroNode[]     // full array returned by generateStorytelling
+  slideCount: number          // macroNodes.length
+  createdAt:  string          // ISO timestamp
+}
+```
+
+The `MacroNode` type (produced by Starter_Agent, shared across procedures):
+
+```typescript
+interface MacroNode {
+  title:       string   // slide title (short, max 8 words)
+  type:        string   // 'cover' | 'content' | 'closing' | 'transition'
+  description: string   // brief content summary for Writer_Agent
+}
+```
+
 ### Brand Kit Selection Pattern
 
 The current implementation uses an explicit `is_active` flag for deterministic, user-controlled
@@ -464,14 +641,34 @@ to the fallback query when multi-kit RAG is needed.
 
 ### Session State Schema
 
+The session state schema differs between pipeline modes:
+
 ```typescript
-interface SessionState {
+// Full pipeline: generateLayout / generateDeckFromStorytelling
+interface FullPipelineSessionState {
   macro_nodes:          MacroNode[]       // written by Starter_Agent
   enriched_content:     EnrichedSlide[]   // written by Writer_Agent (one entry per slide)
   current_slide_index:  number            // managed by SlideLoopAgent
   craft_jsons:          CraftJson[]       // accumulates one entry per slide (Designer_Agent)
   zod_errors:           string | null     // written by Reviewer_Agent on failure (reset per iteration)
   valid:                boolean           // written by Reviewer_Agent on success (reset per slide)
+}
+
+// Single-slide pipeline: generateSlide
+interface SingleSlideSessionState {
+  single_slide_content: SingleSlideContent  // written by SlideStorywriter_Agent
+  brand_context:        BrandTokens         // resolved by procedure before pipeline runs
+  craft_json:           CraftJson | null    // written by Designer_Agent
+  zod_errors:           string | null       // written by Reviewer_Agent on failure
+  valid:                boolean             // written by Reviewer_Agent on success
+}
+
+// SingleSlideContent (produced by SlideStorywriter_Agent)
+interface SingleSlideContent {
+  type:       'cover' | 'agenda' | 'content' | 'section' | 'closing' | 'blank'
+  headline:   string          // max 8 words
+  body:       string[]        // bullets OR [subtitle] OR []
+  layoutHint: 'text-heavy' | 'visual-focus' | 'split' | 'minimal'
 }
 ```
 

@@ -1,6 +1,7 @@
-import { ai } from '../lib/ai.js'
+import { ai, resolveModel } from '../lib/ai.js'
 import { CraftJson } from '../schemas/craftJson.js'
 import { randomUUID } from 'crypto'
+import { SingleSlideContent } from './slideStorywriter.js'
 
 /**
  * Designer_Agent: LlmAgent inside the LoopAgent that generates Craft.js-compatible JSON layouts.
@@ -15,6 +16,11 @@ interface EnrichedSlide {
   brandContext: any
 }
 
+interface SingleSlideInput {
+  singleSlideContent: SingleSlideContent
+  brandContext: any
+}
+
 const LLM_CALL_TIMEOUT_MS = parseInt(process.env.LLM_CALL_TIMEOUT_MS || '60000', 10)
 
 const DESIGNER_PROMPT = `You are a presentation layout designer. Generate a Craft.js-compatible JSON layout for a single slide using FLEXBOX layout.
@@ -26,6 +32,8 @@ Key points:
 
 Brand context (use these exact color/font values in the JSON):
 {{brand_context}}
+
+{{layout_hint_section}}
 
 ════════════════════════════════════════
 LAYOUT MODEL — CRITICAL RULES
@@ -194,20 +202,86 @@ function assignUUIDs(craftJson: any): CraftJson {
 }
 
 export async function runDesignerAgent(
-  slide: EnrichedSlide,
+  slide: EnrichedSlide | SingleSlideInput,
+  mode: 'full' | 'single',
   zodErrors?: string
 ): Promise<CraftJson> {
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp'
-
+  console.log(`Designer_Agent called in ${mode} mode`)
+  
   const zodErrorSection = zodErrors
     ? `\nPREVIOUS VALIDATION ERRORS:\n${zodErrors}\n\nPlease fix these errors in your layout.`
     : ''
 
+  // Handle both EnrichedSlide (full pipeline) and SingleSlideInput (single-slide mode)
+  let title: string
+  let content: string
+  let brandContext: any
+  let layoutHintSection = ''
+
+  if (mode === 'single') {
+    // Single-slide mode: use structured content from SlideStorywriter_Agent
+    // Read headline, body[], layoutHint from session.state['single_slide_content']
+    // Read brand tokens from session.state['brand_context'] (resolved before pipeline starts)
+    if (!('singleSlideContent' in slide)) {
+      throw new Error('Single mode requires SingleSlideInput with singleSlideContent')
+    }
+    
+    const { singleSlideContent } = slide
+    title = singleSlideContent.headline
+    content = singleSlideContent.body.join('\n')
+    brandContext = slide.brandContext
+
+    // Map layoutHint values to explicit Craft.js flex patterns in DESIGNER_PROMPT
+    const layoutHintMap: Record<string, string> = {
+      'text-heavy': `LAYOUT GUIDANCE: text-heavy
+- Use single column layout (flexDirection: "column")
+- Large Title (fontSize: 40-48px) at top
+- Stack bullet point Containers vertically below
+- Each bullet: horizontal Container with accent line + Text node
+- Generous vertical spacing (gap: 16-24px)`,
+      'visual-focus': `LAYOUT GUIDANCE: visual-focus
+- Use side-by-side layout (flexDirection: "row")
+- Left: Image Container (60% width, flex: 3)
+- Right: Text column (40% width, flex: 2)
+- Minimal text — title + 1-2 short points max
+- Large image placeholder with borderRadius`,
+      'split': `LAYOUT GUIDANCE: split
+- Use two equal flex children (flexDirection: "row")
+- Left: Text content (flex: 1)
+- Right: Visual placeholder Container (flex: 1, background with subtle gradient)
+- Balanced 50/50 split
+- Align content vertically centered`,
+      'minimal': `LAYOUT GUIDANCE: minimal
+- Centered layout (alignItems: "center", justifyContent: "center")
+- Large Title (fontSize: 48-64px) at top
+- If body content exists: add subtitle Text below title (fontSize: 18-24px, lighter color)
+- Generous padding (80-120px)
+- Clean, spacious design with lots of whitespace`,
+    }
+
+    layoutHintSection = layoutHintMap[singleSlideContent.layoutHint] || ''
+  } else {
+    // Full pipeline mode: keep current behavior (reads enriched_content[current_slide_index])
+    if (!('title' in slide)) {
+      throw new Error('Full mode requires EnrichedSlide with title and content')
+    }
+    
+    title = slide.title
+    content = slide.content
+    brandContext = slide.brandContext
+  }
+
   const prompt = DESIGNER_PROMPT
-    .replace('{{title}}', slide.title)
-    .replace('{{content}}', slide.content)
-    .replace('{{brand_context}}', JSON.stringify(slide.brandContext, null, 2))
+    .replace('{{title}}', title)
+    .replace('{{content}}', content)
+    .replace('{{brand_context}}', JSON.stringify(brandContext, null, 2))
+    .replace('{{layout_hint_section}}', layoutHintSection)
     .replace('{{zod_errors}}', zodErrorSection)
+
+  console.log('Designer_Agent prompt prepared')
+  console.log('Title:', title)
+  console.log('Content:', content)
+  console.log('Layout hint section:', layoutHintSection ? 'present' : 'empty')
 
   // Wrap LLM call with timeout
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -215,9 +289,10 @@ export async function runDesignerAgent(
   })
 
   try {
+    console.log('Calling LLM with model:', resolveModel())
     const result = await Promise.race([
       ai.generate({
-        model: modelName,
+        model: resolveModel(),
         prompt,
         config: {
           temperature: 0.7,
@@ -227,18 +302,25 @@ export async function runDesignerAgent(
       timeoutPromise,
     ])
 
+    console.log('LLM response received, length:', result.text.length)
+    console.log('Designer_Agent raw LLM response:', result.text)
     const content = result.text
 
     // Parse JSON response
     const jsonMatch = content.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
+      console.error('Designer_Agent raw response:', content)
       throw new Error('No JSON object found in response')
     }
 
+    console.log('JSON extracted, parsing...')
     const craftJson = JSON.parse(jsonMatch[0])
+    console.log('CraftJson parsed, node count:', Object.keys(craftJson).length)
 
     // Assign UUIDs to all nodes
-    return assignUUIDs(craftJson)
+    const result_with_uuids = assignUUIDs(craftJson)
+    console.log('UUIDs assigned, returning CraftJson')
+    return result_with_uuids
   } catch (error) {
     if (error instanceof Error && error.message === 'LLM call timeout') {
       console.error('Designer_Agent timeout after', LLM_CALL_TIMEOUT_MS, 'ms')

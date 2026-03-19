@@ -1,5 +1,7 @@
 import { router } from './trpc.js'
 import { generateLayoutProcedure } from './procedures/generateLayout.js'
+import { generateSlideProcedure } from './procedures/generateSlide.js'
+import { generateStorytellingProcedure } from './procedures/generateStorytelling.js'
 import {
   createBrandKit,
   listBrandKits,
@@ -9,11 +11,13 @@ import {
 } from './procedures/brandKit.js'
 
 /**
- * Root tRPC router composing generateLayout and brandKit sub-routers.
+ * Root tRPC router composing generateLayout, generateSlide, generateStorytelling, and brandKit sub-routers.
  */
 
 export const appRouter = router({
   generateLayout: generateLayoutProcedure,
+  generateSlide: generateSlideProcedure,
+  generateStorytelling: generateStorytellingProcedure,
   brandKit: router({
     create: createBrandKit,
     list: listBrandKits,

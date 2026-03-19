@@ -14,6 +14,7 @@ export const AILayoutGenerator = ({ variant = 'default' }: AILayoutGeneratorProp
     const [isLoading, setIsLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
 
     const handleGenerate = async () => {
@@ -21,10 +22,11 @@ export const AILayoutGenerator = ({ variant = 'default' }: AILayoutGeneratorProp
 
         setIsLoading(true);
         setError(null);
+        setNotice(null);
         setStatusMessage('Iniciando geração...');
 
         try {
-            const subscription = trpc.generateLayout.subscribe(
+            const subscription = trpc.generateSlide.subscribe(
                 { prompt: prompt.trim() },
                 {
                     onData: (event) => {
@@ -33,24 +35,20 @@ export const AILayoutGenerator = ({ variant = 'default' }: AILayoutGeneratorProp
                                 setStatusMessage(event.message);
                                 break;
 
+                            case 'notice':
+                                setNotice(event.message);
+                                break;
+
                             case 'iteration':
                                 setStatusMessage(
-                                    `Slide ${event.slideIndex + 1} - Tentativa ${event.iteration}${
-                                        event.valid ? ' ✓' : '...'
-                                    }`
+                                    `Tentativa ${event.iteration}${event.valid ? ' ✓' : '...'}`
                                 );
                                 break;
 
-                            case 'slide_complete':
-                                setStatusMessage(`Slide ${event.slideIndex + 1} concluído`);
-                                break;
-
                             case 'complete':
-                                // Deserialize the first slide's craftJson into the editor
-                                if (event.craftJsons.length > 0) {
-                                    const serialized = JSON.stringify(event.craftJsons[0]);
-                                    actions.deserialize(serialized);
-                                }
+                                // Deserialize the single craftJson into the editor
+                                const serialized = JSON.stringify(event.craftJson);
+                                actions.deserialize(serialized);
                                 setStatusMessage('Layout gerado com sucesso!');
                                 setPrompt('');
                                 if (variant === 'icon') setIsOpen(false);
@@ -86,7 +84,7 @@ export const AILayoutGenerator = ({ variant = 'default' }: AILayoutGeneratorProp
                 <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Descreva o que você quer no slide... (ex: Título e 3 tópicos em colunas)"
+                    placeholder="Descreva o layout deste slide... (ex: Título centralizado e 3 cards com ícones)"
                     className="w-full h-24 p-3 bg-white border border-[#E5E5E5] rounded-xl text-[11px] focus:ring-1 focus:ring-[#0D99FF] outline-none transition-all resize-none placeholder:text-[#BBBFCA] text-[#333333]"
                     disabled={isLoading}
                     autoFocus={variant === 'icon'}
@@ -104,6 +102,35 @@ export const AILayoutGenerator = ({ variant = 'default' }: AILayoutGeneratorProp
             {error && (
                 <div className="mt-2 p-2 text-[10px] font-medium text-red-500 bg-red-50 border border-red-100 rounded-md">
                     {error}
+                </div>
+            )}
+
+            {notice && (
+                <div className="mt-2 p-2 text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-100 rounded-md flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                        <span>{notice}</span>
+                        {notice.toLowerCase().includes('default') && notice.toLowerCase().includes('brand') && (
+                            <a
+                                href="#brand-kit"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    // Trigger brand kit panel via custom event
+                                    window.dispatchEvent(new CustomEvent('openBrandKitPanel'));
+                                    setNotice(null);
+                                }}
+                                className="ml-1 underline hover:text-blue-800 transition-colors"
+                            >
+                                Configurar Brand Kit
+                            </a>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => setNotice(null)}
+                        className="text-blue-400 hover:text-blue-600 transition-colors shrink-0"
+                        title="Dismiss"
+                    >
+                        <X size={12} />
+                    </button>
                 </div>
             )}
 

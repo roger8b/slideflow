@@ -1,4 +1,4 @@
-import { ai } from '../lib/ai.js'
+import { ai, resolveModel } from '../lib/ai.js'
 
 /**
  * Starter_Agent: First agent in the SequentialAgent pipeline.
@@ -30,10 +30,8 @@ User prompt: {{prompt}}
 Return ONLY the JSON array, no additional text.`
 
 export async function runStarterAgent(prompt: string): Promise<any[]> {
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp'
-
   const { text } = await ai.generate({
-    model: modelName,
+    model: resolveModel(),
     prompt: STARTER_PROMPT.replace('{{prompt}}', prompt),
     config: {
       temperature: 0.7,

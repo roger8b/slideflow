@@ -1,4 +1,4 @@
-import { ai } from '../lib/ai.js'
+import { ai, resolveModel } from '../lib/ai.js'
 import { db } from '../db/client.js'
 import { brandKits, workspaceDefaults, globalDefaults } from '../db/schema.js'
 import { eq, and, desc } from 'drizzle-orm'
@@ -105,8 +105,6 @@ export async function runWriterAgent(
   workspaceId: string
 ): Promise<EnrichedSlide[]> {
   const brandContext = await getBrandKit(workspaceId)
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp'
-
   const enrichedSlides: EnrichedSlide[] = []
 
   for (const node of macroNodes) {
@@ -117,7 +115,7 @@ export async function runWriterAgent(
       .replace('{{brand_context}}', JSON.stringify(brandContext, null, 2))
 
     const { text } = await ai.generate({
-      model: modelName,
+      model: resolveModel(),
       prompt,
       config: {
         temperature: 0.8,

@@ -6,7 +6,7 @@ import type { AppRouter } from '../../server/src/trpc/router'
  * Connects to backend at http://localhost:3000/trpc
  */
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
+const BACKEND_URL = (import.meta as any).env?.VITE_BACKEND_URL || 'http://localhost:3000'
 
 export const trpc = createTRPCClient<AppRouter>({
   links: [

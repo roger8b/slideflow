@@ -9,8 +9,14 @@ import { rateLimiter } from './middleware/rateLimiter.js'
 const app = new Hono()
 
 // CORS middleware - must be first, before all route handlers
+// CORS_ORIGIN supports comma-separated list: "http://localhost:5173,http://localhost:3001"
+const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173,http://localhost:3001')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean)
+
 app.use('*', cors({
-  origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+  origin: (origin) => (corsOrigins.includes(origin) ? origin : corsOrigins[0]),
   credentials: true,
 }))
 

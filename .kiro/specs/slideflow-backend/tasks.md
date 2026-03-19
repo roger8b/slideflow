@@ -238,7 +238,8 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
       - `text-heavy` → single column, large Title + stacked bullet Containers
       - `visual-focus` → 60% Image Container / 40% text column (side-by-side flex)
       - `split` → two equal flex children (text left, visual placeholder right)
-      - `minimal` → centered Title only, generous padding, no body
+      - `minimal` → centered layout, large Title + subtitle Text if body exists, generous padding
+    - **FIXED**: layoutHint "minimal" now supports cover slides with subtitle (checks if body content exists)
     - _Requirements: 12.1, 12.2_
 
   - [x] 3.22 Implement `generateStorytelling` tRPC subscription procedure
@@ -264,7 +265,7 @@ Tasks are ordered so each step integrates cleanly into the previous one — no o
     - Assert same CraftJson input always produces identical pass/fail result across multiple calls; assert no LLM client is instantiated in reviewer.ts
     - Minimum 100 iterations
 
-- [ ] 4. Checkpoint — FA 002 complete (including corrective sub-tasks)
+- [x] 4. Checkpoint — FA 002 complete (including corrective sub-tasks)
   - Ensure `AILayoutGenerator.tsx` calls `trpc.generateSlide` (not `generateLayout`) and deserializes a single `craftJson`.
   - Ensure `generateStorytelling` procedure returns `macroNodes` via SSE on a Starter-only run.
   - Ensure `generateSlide` runs only the Designer → Reviewer loop (confirm no Starter/Writer calls in logs).
